@@ -110,6 +110,17 @@ function setupModals() {
         showScheduleCompanionSection(true);
         renderCompanionList();
       }
+      if (btn.dataset.openModal === "modal-report") {
+        document.getElementById("report-modal-title").textContent = "日報を追加";
+        document.getElementById("report-delete-btn").classList.add("hidden");
+        document.getElementById("report-add-entry-btn").classList.remove("hidden");
+        document.getElementById("report-entries").innerHTML = "";
+        document.getElementById("form-report").date.value = todayStr();
+        addReportEntry();
+      }
+      if (btn.dataset.openModal === "modal-target") {
+        fillTargetForm();
+      }
     });
   });
   document.querySelectorAll("[data-close-modal]").forEach((btn) => {
@@ -131,6 +142,9 @@ function closeAllModals() {
   document.getElementById("schedule-companion-toggle").checked = false;
   document.getElementById("schedule-companion-list").classList.add("hidden");
   document.getElementById("schedule-companion-list").innerHTML = "";
+  document.getElementById("report-delete-btn").classList.add("hidden");
+  document.getElementById("report-add-entry-btn").classList.remove("hidden");
+  document.getElementById("report-entries").innerHTML = "";
   state.editing = { collection: null, id: null };
 }
 
@@ -590,40 +604,100 @@ function renderReports() {
     list.appendChild(el);
   });
 }
+/* --- 日報モーダル: 1日分の訪問・案件をまとめて入力するエントリー行 --- */
+let reportEntrySeq = 0;
+function createReportEntryEl(data) {
+  data = data || {};
+  reportEntrySeq++;
+  const wrap = document.createElement("div");
+  wrap.className = "report-entry";
+  wrap.dataset.entrySeq = String(reportEntrySeq);
+  wrap.innerHTML = `
+    <div class="report-entry-header">
+      <span class="report-entry-num"></span>
+      <button type="button" class="report-entry-remove">✕ この行を削除</button>
+    </div>
+    <label>顧客名<input type="text" data-field="clientName" required /></label>
+    <label>内容<input type="text" data-field="content" /></label>
+    <label>作業区分<input type="text" data-field="workType" placeholder="訪問・電話・見積 等" /></label>
+    <label>請求対象<select data-field="billing"><option value="対象">対象</option><option value="対象外">対象外</option></select></label>
+    <label>次回訪問<input type="date" data-field="nextVisit" /></label>
+    <label>時間<input type="text" data-field="time" placeholder="例: 10:00〜11:00" /></label>`;
+  wrap.querySelector('[data-field="clientName"]').value = data.clientName || "";
+  wrap.querySelector('[data-field="content"]').value = data.content || "";
+  wrap.querySelector('[data-field="workType"]').value = data.workType || "";
+  wrap.querySelector('[data-field="billing"]').value = data.billing || "対象";
+  wrap.querySelector('[data-field="nextVisit"]').value = data.nextVisit || "";
+  wrap.querySelector('[data-field="time"]').value = data.time || "";
+  wrap.querySelector(".report-entry-remove").addEventListener("click", () => {
+    wrap.remove();
+    renumberReportEntries();
+  });
+  return wrap;
+}
+function addReportEntry(data) {
+  document.getElementById("report-entries").appendChild(createReportEntryEl(data));
+  renumberReportEntries();
+}
+function renumberReportEntries() {
+  const entries = document.querySelectorAll("#report-entries .report-entry");
+  entries.forEach((el, idx) => {
+    el.querySelector(".report-entry-num").textContent = `訪問・案件 ${idx + 1}`;
+    el.querySelector(".report-entry-remove").classList.toggle("hidden", entries.length <= 1);
+  });
+}
+document.getElementById("report-add-entry-btn").addEventListener("click", () => addReportEntry());
+
 function editReport(item) {
   state.editing = { collection: "dailyReports", id: item.id };
   const form = document.getElementById("form-report");
   form.rep.value = item.rep || "";
   form.date.value = item.date || "";
-  form.clientName.value = item.clientName || "";
-  form.content.value = item.content || "";
-  form.workType.value = item.workType || "";
-  form.billing.value = item.billing || "対象";
-  form.nextVisit.value = item.nextVisit || "";
-  form.time.value = item.time || "";
+  document.getElementById("report-modal-title").textContent = "日報を編集";
+  document.getElementById("report-entries").innerHTML = "";
+  addReportEntry(item);
+  // 編集は1件のみ（複数行への分割・追加は行わない）
+  document.getElementById("report-add-entry-btn").classList.add("hidden");
+  document.getElementById("report-delete-btn").classList.remove("hidden");
   openModal("modal-report");
 }
 document.getElementById("form-report").addEventListener("submit", (e) => {
   e.preventDefault();
   const f = e.target;
-  const payload = {
-    rep: f.rep.value,
-    date: f.date.value,
-    clientName: f.clientName.value,
-    content: f.content.value,
-    workType: f.workType.value,
-    billing: f.billing.value,
-    nextVisit: f.nextVisit.value,
-    time: f.time.value,
-  };
+  const rep = f.rep.value;
+  const date = f.date.value;
+  const entries = Array.from(document.querySelectorAll("#report-entries .report-entry")).map((el) => ({
+    clientName: el.querySelector('[data-field="clientName"]').value,
+    content: el.querySelector('[data-field="content"]').value,
+    workType: el.querySelector('[data-field="workType"]').value,
+    billing: el.querySelector('[data-field="billing"]').value,
+    nextVisit: el.querySelector('[data-field="nextVisit"]').value,
+    time: el.querySelector('[data-field="time"]').value,
+  }));
+  if (entries.length === 0) {
+    showToast("少なくとも1件の訪問・案件を入力してください");
+    return;
+  }
+
   const p =
-    state.editing.collection === "dailyReports"
-      ? updateDoc("dailyReports", state.editing.id, payload)
-      : addDoc("dailyReports", payload);
+    state.editing.collection === "dailyReports" && state.editing.id
+      ? updateDoc("dailyReports", state.editing.id, { rep, date, ...entries[0] })
+      : Promise.all(entries.map((entry) => addDoc("dailyReports", { rep, date, ...entry })));
+
   p.then(() => {
-    showToast("日報を保存しました");
+    showToast(entries.length > 1 ? `日報を保存しました（${entries.length}件）` : "日報を保存しました");
     closeAllModals();
   }).catch((err) => showToast("保存エラー: " + err.message));
+});
+document.getElementById("report-delete-btn").addEventListener("click", () => {
+  if (state.editing.collection !== "dailyReports" || !state.editing.id) return;
+  if (!confirm("この日報を削除しますか？")) return;
+  deleteDoc("dailyReports", state.editing.id)
+    .then(() => {
+      showToast("日報を削除しました");
+      closeAllModals();
+    })
+    .catch((err) => showToast("削除エラー: " + err.message));
 });
 
 /* ================================================================
@@ -816,6 +890,9 @@ function renderDashboard() {
     monthlySalesTarget: Array(12).fill(0),
     monthlyProfitTargetByMonth: Array(12).fill(0),
     lastYearMonthlySales: Array(12).fill(0),
+    dealConfirmedTarget: 0,
+    dealProspectTarget: 0,
+    businessDaysOverride: {},
   };
   const now = new Date();
   const monthIdx = now.getMonth(); // 0-11
@@ -836,14 +913,16 @@ function renderDashboard() {
 
   const salesTarget = (settings.monthlySalesTarget && settings.monthlySalesTarget[monthIdx]) || 0;
   const profitTarget = (settings.monthlyProfitTargetByMonth && settings.monthlyProfitTargetByMonth[monthIdx]) || settings.monthlyProfitTarget || 0;
+  const dealConfirmedTarget = settings.dealConfirmedTarget || 0;
+  const dealProspectTarget = settings.dealProspectTarget || 0;
 
   const kpiGrid = document.getElementById("kpi-grid");
   kpiGrid.innerHTML = "";
   const kpis = [
     { label: "売上（伝票発行済）", value: yen(salesInvoiced), sub: `目標 ${yen(salesTarget)}`, cls: salesInvoiced >= salesTarget && salesTarget > 0 ? "good" : "" },
     { label: "粗利（伝票発行済）", value: yen(profitInvoiced), sub: `目標 ${yen(profitTarget)}`, cls: profitInvoiced >= profitTarget && profitTarget > 0 ? "good" : "" },
-    { label: "確定（伝票未発行）売上", value: yen(salesConfirmedNoInvoice), sub: `粗利 ${yen(profitConfirmedNoInvoice)}`, cls: "" },
-    { label: "見込 売上", value: yen(salesProspect), sub: `粗利 ${yen(profitProspect)}`, cls: "" },
+    { label: "確定（伝票未発行）売上", value: yen(salesConfirmedNoInvoice), sub: `目標 ${yen(dealConfirmedTarget)} ／ 粗利 ${yen(profitConfirmedNoInvoice)}`, cls: salesConfirmedNoInvoice >= dealConfirmedTarget && dealConfirmedTarget > 0 ? "good" : "" },
+    { label: "見込 売上", value: yen(salesProspect), sub: `目標 ${yen(dealProspectTarget)} ／ 粗利 ${yen(profitProspect)}`, cls: salesProspect >= dealProspectTarget && dealProspectTarget > 0 ? "good" : "" },
   ];
   kpis.forEach((k) => {
     const div = document.createElement("div");
@@ -910,7 +989,11 @@ function renderDashboard() {
 
   // Daily report submission status this month
   const reportTable = document.getElementById("dash-report-table");
-  const businessDaysSoFar = businessDaysInMonthSoFar();
+  const businessDaysOverride = settings.businessDaysOverride && settings.businessDaysOverride[monthKey];
+  const businessDaysSoFar =
+    businessDaysOverride !== undefined && businessDaysOverride !== null && businessDaysOverride !== ""
+      ? Number(businessDaysOverride)
+      : businessDaysInMonthSoFar();
   let rrows = '<tr><th>担当者</th><th>今月提出数</th><th>営業日数</th><th>提出率</th></tr>';
   REPS.forEach((rep) => {
     const days = new Set(
@@ -932,6 +1015,65 @@ function businessDaysInMonthSoFar() {
   }
   return count;
 }
+
+/* ---------------- 目標金額・営業日数 設定モーダル ---------------- */
+function fillTargetForm() {
+  const settings = state.data.settings || {};
+  const now = new Date();
+  const monthIdx = now.getMonth();
+  const monthKey = currentMonthKey();
+  document.getElementById("target-month-label").textContent = `対象月: ${now.getFullYear()}年${monthIdx + 1}月`;
+
+  const form = document.getElementById("form-target");
+  form.salesTarget.value = (settings.monthlySalesTarget && settings.monthlySalesTarget[monthIdx]) || 0;
+  form.profitTarget.value =
+    (settings.monthlyProfitTargetByMonth && settings.monthlyProfitTargetByMonth[monthIdx]) ||
+    settings.monthlyProfitTarget ||
+    0;
+  form.dealConfirmedTarget.value = settings.dealConfirmedTarget || 0;
+  form.dealProspectTarget.value = settings.dealProspectTarget || 0;
+  const businessDaysOverride = settings.businessDaysOverride && settings.businessDaysOverride[monthKey];
+  form.businessDays.value =
+    businessDaysOverride !== undefined && businessDaysOverride !== null && businessDaysOverride !== ""
+      ? businessDaysOverride
+      : businessDaysInMonthSoFar();
+}
+document.getElementById("form-target").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const now = new Date();
+  const monthIdx = now.getMonth();
+  const monthKey = currentMonthKey();
+  const settings = state.data.settings || {};
+
+  const monthlySalesTarget = (settings.monthlySalesTarget || Array(12).fill(0)).slice();
+  const monthlyProfitTargetByMonth = (settings.monthlyProfitTargetByMonth || Array(12).fill(0)).slice();
+  monthlySalesTarget[monthIdx] = Number(f.salesTarget.value) || 0;
+  monthlyProfitTargetByMonth[monthIdx] = Number(f.profitTarget.value) || 0;
+
+  const businessDaysOverride = { ...(settings.businessDaysOverride || {}) };
+  businessDaysOverride[monthKey] = Number(f.businessDays.value) || 0;
+
+  const payload = {
+    monthlySalesTarget,
+    monthlyProfitTargetByMonth,
+    dealConfirmedTarget: Number(f.dealConfirmedTarget.value) || 0,
+    dealProspectTarget: Number(f.dealProspectTarget.value) || 0,
+    businessDaysOverride,
+  };
+
+  state.db
+    .collection("settings")
+    .doc("main")
+    .set(payload, { merge: true })
+    .then(() => {
+      state.data.settings = { ...settings, ...payload };
+      showToast("目標・営業日数を保存しました");
+      closeAllModals();
+      renderDashboard();
+    })
+    .catch((err) => showToast("保存エラー: " + err.message));
+});
 
 /* ---------------- Utils ---------------- */
 function escapeHtml(str) {
@@ -991,6 +1133,9 @@ function loadSettings() {
           monthlySalesTarget: [5000000, 5000000, 5000000, 5000000, 5000000, 5000000, 5000000, 0, 0, 0, 0, 0],
           monthlyProfitTargetByMonth: [3000000, 3000000, 3000000, 3000000, 3000000, 3000000, 3000000, 0, 0, 0, 0, 0],
           lastYearMonthlySales: [4079512, 7617207, 8389019, 3148879, 3204342, 1932761, 2187642, 4761530, 3990195, 4098109, 2999198, 1905012],
+          dealConfirmedTarget: 0,
+          dealProspectTarget: 0,
+          businessDaysOverride: {},
         };
         state.db.collection("settings").doc("main").set(defaults);
         state.data.settings = defaults;

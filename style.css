@@ -195,6 +195,18 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .companion-item { font-size: 13px; color: var(--text); }
 .btn-danger { background: #fdeceb; color: var(--danger); }
 
+/* --- 日報モーダル: まとめて入力の訪問エントリー --- */
+.report-entries { display: flex; flex-direction: column; gap: 10px; }
+.report-entry {
+  background: #f8f9fc; border: 1px solid var(--border); border-radius: 10px;
+  padding: 12px; display: flex; flex-direction: column; gap: 8px;
+}
+.report-entry-header { display: flex; align-items: center; justify-content: space-between; }
+.report-entry-num { font-size: 12px; font-weight: 700; color: var(--primary-dark); }
+.report-entry-remove {
+  border: none; background: none; color: var(--danger); font-size: 12px; cursor: pointer; padding: 0;
+}
+
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list-item {
   background: var(--card-bg); border-radius: 12px; padding: 12px 14px;
