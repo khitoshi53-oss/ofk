@@ -11,8 +11,7 @@ const state = {
   auth: null,
   currentView: "view-dashboard",
   editing: { collection: null, id: null },
-  calendar: { year: new Date().getFullYear(), month: new Date().getMonth() },
-  scheduleSelectedDate: todayStr(),
+  calendar: { weekStart: startOfWeek(todayStr()) },
   data: {
     schedule: [],
     todos: [],
@@ -105,9 +104,9 @@ function setupModals() {
     btn.addEventListener("click", () => {
       state.editing = { collection: null, id: null };
       openModal(btn.dataset.openModal);
-      if (btn.dataset.openModal === "modal-schedule" && state.scheduleSelectedDate) {
-        const form = document.getElementById("form-schedule");
-        form.date.value = state.scheduleSelectedDate;
+      if (btn.dataset.openModal === "modal-schedule") {
+        document.getElementById("schedule-delete-btn").classList.add("hidden");
+        document.getElementById("form-schedule").date.value = todayStr();
       }
     });
   });
@@ -126,6 +125,7 @@ function openModal(id) {
 function closeAllModals() {
   document.querySelectorAll(".modal-backdrop").forEach((m) => m.classList.add("hidden"));
   document.querySelectorAll(".modal-card").forEach((f) => f.reset && f.reset());
+  document.getElementById("schedule-delete-btn").classList.add("hidden");
   state.editing = { collection: null, id: null };
 }
 
@@ -216,110 +216,112 @@ function todayStr() {
 }
 
 /* ================================================================
- * 予定表（カレンダー表示）
+ * 予定表（担当者 × 曜日の週グリッド表示）
  * ================================================================ */
-function renderCalendar() {
-  const { year, month } = state.calendar; // month: 0-11
-  document.getElementById("cal-month-label").textContent = `${year}年${month + 1}月`;
+const WEEKDAYS_JA = ["日", "月", "火", "水", "木", "金", "土"];
+
+function startOfWeek(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+function toDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function openScheduleModalFor(dateStr, rep) {
+  state.editing = { collection: null, id: null };
+  document.getElementById("schedule-delete-btn").classList.add("hidden");
+  openModal("modal-schedule");
+  const form = document.getElementById("form-schedule");
+  form.date.value = dateStr;
+  if (rep) form.rep.value = rep;
+}
+function renderSchedule() {
+  const weekStart = new Date(state.calendar.weekStart);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + i);
+    days.push(d);
+  }
+  document.getElementById("cal-month-label").textContent =
+    `${days[0].getFullYear()}年${days[0].getMonth() + 1}月${days[0].getDate()}日 〜 ` +
+    `${days[6].getMonth() + 1}月${days[6].getDate()}日`;
 
   const repFilter = document.getElementById("schedule-rep-filter").value;
-  const itemsByDate = {};
-  state.data.schedule.forEach((item) => {
-    if (repFilter && item.rep !== repFilter) return;
-    if (!item.date) return;
-    (itemsByDate[item.date] = itemsByDate[item.date] || []).push(item);
-  });
-
-  const firstOfMonth = new Date(year, month, 1);
-  const startWeekday = firstOfMonth.getDay(); // 0=日
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const reps = repFilter ? [repFilter] : REPS;
   const today = todayStr();
+
+  const itemsByRepDate = {};
+  state.data.schedule.forEach((item) => {
+    if (!item.date || !item.rep) return;
+    if (repFilter && item.rep !== repFilter) return;
+    itemsByRepDate[item.rep] = itemsByRepDate[item.rep] || {};
+    (itemsByRepDate[item.rep][item.date] = itemsByRepDate[item.rep][item.date] || []).push(item);
+  });
 
   const grid = document.getElementById("calendar-grid");
   grid.innerHTML = "";
 
-  for (let i = 0; i < startWeekday; i++) {
-    const empty = document.createElement("div");
-    empty.className = "cal-cell cal-cell-empty";
-    grid.appendChild(empty);
-  }
+  const headerRow = document.createElement("div");
+  headerRow.className = "week-row week-header-row";
+  headerRow.appendChild(Object.assign(document.createElement("div"), { className: "week-cell week-corner" }));
+  days.forEach((d) => {
+    const dateStr = toDateStr(d);
+    const cell = document.createElement("div");
+    cell.className = "week-cell week-day-header";
+    if (d.getDay() === 6) cell.classList.add("week-sat");
+    if (d.getDay() === 0) cell.classList.add("week-sun");
+    if (dateStr === today) cell.classList.add("week-today");
+    cell.textContent = `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS_JA[d.getDay()]})`;
+    headerRow.appendChild(cell);
+  });
+  grid.appendChild(headerRow);
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    const dayItems = itemsByDate[dateStr] || [];
-    const cell = document.createElement("button");
-    cell.type = "button";
-    cell.className = "cal-cell";
-    if (dateStr === today) cell.classList.add("cal-cell-today");
-    if (dateStr === state.scheduleSelectedDate) cell.classList.add("cal-cell-selected");
-    cell.innerHTML = `
-      <span class="cal-day-num">${day}</span>
-      ${dayItems.length ? `<span class="cal-day-dot">${dayItems.length > 9 ? "9+" : dayItems.length}</span>` : ""}`;
-    cell.addEventListener("click", () => {
-      state.scheduleSelectedDate = state.scheduleSelectedDate === dateStr ? null : dateStr;
-      renderSchedule();
+  reps.forEach((rep) => {
+    const row = document.createElement("div");
+    row.className = "week-row";
+    const labelCell = document.createElement("div");
+    labelCell.className = "week-cell week-rep-label";
+    labelCell.textContent = rep;
+    row.appendChild(labelCell);
+
+    days.forEach((d) => {
+      const dateStr = toDateStr(d);
+      const cell = document.createElement("div");
+      cell.className = "week-cell week-day-cell";
+      if (d.getDay() === 6) cell.classList.add("week-sat");
+      if (d.getDay() === 0) cell.classList.add("week-sun");
+      if (dateStr === today) cell.classList.add("week-today");
+
+      const items = ((itemsByRepDate[rep] && itemsByRepDate[rep][dateStr]) || []).slice();
+      items.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+      items.forEach((item) => {
+        const chip = document.createElement("div");
+        chip.className = "week-item-chip";
+        chip.textContent = `${item.time ? item.time + " " : ""}${item.content || ""}`;
+        if (item.memo) chip.title = item.memo;
+        chip.addEventListener("click", (e) => {
+          e.stopPropagation();
+          editSchedule(item);
+        });
+        cell.appendChild(chip);
+      });
+      cell.addEventListener("click", () => openScheduleModalFor(dateStr, rep));
+      row.appendChild(cell);
     });
-    grid.appendChild(cell);
-  }
-}
-function renderSchedule() {
-  renderCalendar();
-
-  const repFilter = document.getElementById("schedule-rep-filter").value;
-  let items = state.data.schedule.slice();
-  if (repFilter) items = items.filter((i) => i.rep === repFilter);
-  if (state.scheduleSelectedDate) items = items.filter((i) => i.date === state.scheduleSelectedDate);
-  items.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-
-  const titleEl = document.getElementById("schedule-day-title");
-  const clearBtn = document.getElementById("schedule-day-clear");
-  if (state.scheduleSelectedDate) {
-    titleEl.textContent =
-      state.scheduleSelectedDate === todayStr()
-        ? `本日の予定（${state.scheduleSelectedDate}）`
-        : `${state.scheduleSelectedDate} の予定`;
-    clearBtn.classList.remove("hidden");
-  } else {
-    titleEl.textContent = "すべての予定";
-    clearBtn.classList.add("hidden");
-  }
-
-  const list = document.getElementById("schedule-list");
-  list.innerHTML = "";
-  if (items.length === 0) {
-    list.innerHTML = '<div class="empty-msg">予定がありません</div>';
-    return;
-  }
-  items.forEach((item) => {
-    const el = document.createElement("div");
-    el.className = "list-item";
-    el.innerHTML = `
-      <div class="row1"><span>${escapeHtml(item.date)} ${escapeHtml(item.time)}</span><span class="tag">${escapeHtml(item.rep)}</span></div>
-      <div class="row2">${escapeHtml(item.content || "")}</div>
-      ${item.memo ? `<div class="row2">📝 ${escapeHtml(item.memo)}</div>` : ""}
-      <div class="item-actions">
-        <button data-edit="${item.id}">編集</button>
-        <button data-delete="${item.id}" class="danger">削除</button>
-      </div>`;
-    el.querySelector("[data-edit]").addEventListener("click", () => editSchedule(item));
-    el.querySelector("[data-delete]").addEventListener("click", () => {
-      if (confirm("この予定を削除しますか？")) deleteDoc("schedule", item.id);
-    });
-    list.appendChild(el);
+    grid.appendChild(row);
   });
 }
 function editSchedule(item) {
   state.editing = { collection: "schedule", id: item.id };
-  if (item.date) {
-    const [y, m] = item.date.split("-").map(Number);
-    state.calendar = { year: y, month: m - 1 };
-  }
   const form = document.getElementById("form-schedule");
   form.date.value = item.date || "";
   form.rep.value = item.rep || "";
   form.time.value = item.time || "";
   form.content.value = item.content || "";
   form.memo.value = item.memo || "";
+  document.getElementById("schedule-delete-btn").classList.remove("hidden");
   openModal("modal-schedule");
 }
 document.getElementById("form-schedule").addEventListener("submit", (e) => {
@@ -340,6 +342,16 @@ document.getElementById("form-schedule").addEventListener("submit", (e) => {
     showToast("予定を保存しました");
     closeAllModals();
   }).catch((err) => showToast("保存エラー: " + err.message));
+});
+document.getElementById("schedule-delete-btn").addEventListener("click", () => {
+  if (state.editing.collection !== "schedule" || !state.editing.id) return;
+  if (!confirm("この予定を削除しますか？")) return;
+  deleteDoc("schedule", state.editing.id)
+    .then(() => {
+      showToast("予定を削除しました");
+      closeAllModals();
+    })
+    .catch((err) => showToast("削除エラー: " + err.message));
 });
 
 /* ================================================================
@@ -833,29 +845,19 @@ function escapeHtml(str) {
 function setupFilters() {
   document.getElementById("schedule-rep-filter").addEventListener("change", renderSchedule);
   document.getElementById("cal-prev").addEventListener("click", () => {
-    state.calendar.month -= 1;
-    if (state.calendar.month < 0) {
-      state.calendar.month = 11;
-      state.calendar.year -= 1;
-    }
+    const d = new Date(state.calendar.weekStart);
+    d.setDate(d.getDate() - 7);
+    state.calendar.weekStart = d;
     renderSchedule();
   });
   document.getElementById("cal-next").addEventListener("click", () => {
-    state.calendar.month += 1;
-    if (state.calendar.month > 11) {
-      state.calendar.month = 0;
-      state.calendar.year += 1;
-    }
+    const d = new Date(state.calendar.weekStart);
+    d.setDate(d.getDate() + 7);
+    state.calendar.weekStart = d;
     renderSchedule();
   });
   document.getElementById("cal-today").addEventListener("click", () => {
-    const now = new Date();
-    state.calendar = { year: now.getFullYear(), month: now.getMonth() };
-    state.scheduleSelectedDate = todayStr();
-    renderSchedule();
-  });
-  document.getElementById("schedule-day-clear").addEventListener("click", () => {
-    state.scheduleSelectedDate = null;
+    state.calendar.weekStart = startOfWeek(todayStr());
     renderSchedule();
   });
   ["todo-status-filter", "todo-rep-filter"].forEach((id) =>

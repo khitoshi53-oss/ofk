@@ -64,21 +64,13 @@
       </div>
       <div class="calendar-card">
         <div class="calendar-header">
-          <button type="button" id="cal-prev" class="cal-nav-btn" aria-label="前の月">‹</button>
+          <button type="button" id="cal-prev" class="cal-nav-btn" aria-label="前の週">‹</button>
           <div id="cal-month-label" class="cal-month-label"></div>
-          <button type="button" id="cal-next" class="cal-nav-btn" aria-label="次の月">›</button>
-          <button type="button" id="cal-today" class="cal-today-btn">今日</button>
+          <button type="button" id="cal-next" class="cal-nav-btn" aria-label="次の週">›</button>
+          <button type="button" id="cal-today" class="cal-today-btn">今週</button>
         </div>
-        <div class="calendar-weekdays">
-          <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
-        </div>
-        <div id="calendar-grid" class="calendar-grid"></div>
+        <div id="calendar-grid" class="week-grid"></div>
       </div>
-      <div class="view-header">
-        <h3 id="schedule-day-title" class="schedule-day-title">本日の予定</h3>
-        <button type="button" id="schedule-day-clear" class="link-btn-plain hidden">すべて表示</button>
-      </div>
-      <div id="schedule-list" class="list"></div>
     </section>
 
     <!-- TODO -->
@@ -163,6 +155,7 @@
     <label>メモ<textarea name="memo" rows="2"></textarea></label>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="button" id="schedule-delete-btn" class="btn-secondary btn-danger hidden">削除</button>
       <button type="submit" class="btn-primary">保存</button>
     </div>
   </form>

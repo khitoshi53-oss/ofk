@@ -131,44 +131,50 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .legend-this::before { background: var(--primary); }
 .legend-last::before { background: #c7d2e8; }
 
-/* --- Calendar --- */
+/* --- Calendar (week grid: reps x days) --- */
 .calendar-card {
-  background: var(--card-bg); border-radius: var(--radius); padding: 14px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 14px;
+  background: var(--card-bg); border-radius: var(--radius); padding: 14px 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 14px; overflow-x: auto;
 }
-.calendar-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-.cal-month-label { flex: 1; text-align: center; font-weight: 700; font-size: 15px; }
+.calendar-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; padding: 0 4px; }
+.cal-month-label { flex: 1; text-align: center; font-weight: 700; font-size: 13px; }
 .cal-nav-btn {
   border: 1px solid var(--border); background: #f8faff; color: var(--primary-dark);
-  width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; line-height: 1;
+  width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; line-height: 1; flex: none;
 }
 .cal-today-btn {
   border: 1px solid var(--border); background: #f8faff; color: var(--primary-dark);
-  padding: 0 10px; height: 32px; border-radius: 8px; font-size: 12px; cursor: pointer;
+  padding: 0 10px; height: 32px; border-radius: 8px; font-size: 12px; cursor: pointer; flex: none;
 }
-.calendar-weekdays {
-  display: grid; grid-template-columns: repeat(7, 1fr); text-align: center;
-  font-size: 11px; color: var(--muted); margin-bottom: 4px;
+.week-grid { display: flex; flex-direction: column; min-width: 620px; }
+.week-row { display: grid; grid-template-columns: 74px repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
+.week-cell { min-width: 0; }
+.week-corner { background: none; }
+.week-rep-label {
+  display: flex; align-items: center; font-size: 12px; font-weight: 700; color: var(--text);
+  background: #f8f9fc; border-radius: 8px; padding: 6px 8px;
 }
-.calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
-.cal-cell {
-  aspect-ratio: 1 / 1; border: 1px solid transparent; border-radius: 8px;
-  background: #f8f9fc; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 2px; font-size: 12px; cursor: pointer; padding: 2px; color: var(--text);
+.week-day-header {
+  text-align: center; font-size: 11px; font-weight: 700; color: var(--muted);
+  background: #f8f9fc; border-radius: 8px; padding: 6px 2px;
 }
-.cal-cell-empty { background: none; cursor: default; }
-.cal-day-num { font-weight: 600; }
-.cal-day-dot {
-  font-size: 9px; background: var(--primary); color: #fff; border-radius: 999px;
-  min-width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; padding: 0 3px;
+.week-day-header.week-sat { color: #2f6fed; background: #eef4ff; }
+.week-day-header.week-sun { color: var(--danger); background: #fdeceb; }
+.week-day-header.week-today { outline: 2px solid var(--primary); outline-offset: -2px; }
+.week-day-cell {
+  background: #fafbfd; border-radius: 8px; padding: 4px; min-height: 56px;
+  display: flex; flex-direction: column; gap: 3px; cursor: pointer;
 }
-.cal-cell-today { border-color: var(--primary); }
-.cal-cell-selected { background: var(--primary); color: #fff; }
-.cal-cell-selected .cal-day-dot { background: #fff; color: var(--primary-dark); }
-.schedule-day-title { margin: 0; font-size: 15px; }
-.link-btn-plain {
-  background: none; border: none; color: var(--primary); font-size: 12px; cursor: pointer; padding: 0;
+.week-day-cell.week-sat { background: #f4f8ff; }
+.week-day-cell.week-sun { background: #fdf3f2; }
+.week-day-cell.week-today { box-shadow: inset 0 0 0 2px var(--primary); }
+.week-item-chip {
+  background: #eef2fd; color: var(--primary-dark); border-radius: 6px;
+  padding: 3px 5px; font-size: 10.5px; line-height: 1.3; cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.week-item-chip:active { background: var(--primary); color: #fff; }
+.btn-danger { background: #fdeceb; color: var(--danger); }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list-item {
