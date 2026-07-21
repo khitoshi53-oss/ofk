@@ -60,8 +60,23 @@
         <button class="fab-inline" data-open-modal="modal-schedule">＋ 予定を追加</button>
       </div>
       <div class="filter-row">
-        <input type="date" id="schedule-date-filter" />
         <select id="schedule-rep-filter"><option value="">全担当者</option></select>
+      </div>
+      <div class="calendar-card">
+        <div class="calendar-header">
+          <button type="button" id="cal-prev" class="cal-nav-btn" aria-label="前の月">‹</button>
+          <div id="cal-month-label" class="cal-month-label"></div>
+          <button type="button" id="cal-next" class="cal-nav-btn" aria-label="次の月">›</button>
+          <button type="button" id="cal-today" class="cal-today-btn">今日</button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span>土</span>
+        </div>
+        <div id="calendar-grid" class="calendar-grid"></div>
+      </div>
+      <div class="view-header">
+        <h3 id="schedule-day-title" class="schedule-day-title">本日の予定</h3>
+        <button type="button" id="schedule-day-clear" class="link-btn-plain hidden">すべて表示</button>
       </div>
       <div id="schedule-list" class="list"></div>
     </section>

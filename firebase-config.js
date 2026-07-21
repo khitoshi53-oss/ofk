@@ -1,3 +1,5 @@
+// ▼▼▼ ここをあなたのFirebaseプロジェクトの値に書き換えてください ▼▼▼
+// 取得方法は SETUP_GUIDE.md を参照してください。
 window.FIREBASE_CONFIG = {
   apiKey: "AIzaSyDDZLs48hms1943E1VqtHN87Swz6W-yNYo",
   authDomain: "officek-4bd3f.firebaseapp.com",
@@ -7,3 +9,4 @@ window.FIREBASE_CONFIG = {
   appId: "1:96009912431:web:0cf9f5185814b83980cd9a",
   measurementId: "G-BZGNL51LQY"
 };
+// ▲▲▲ ここまで ▲▲▲

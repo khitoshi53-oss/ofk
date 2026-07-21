@@ -11,6 +11,8 @@ const state = {
   auth: null,
   currentView: "view-dashboard",
   editing: { collection: null, id: null },
+  calendar: { year: new Date().getFullYear(), month: new Date().getMonth() },
+  scheduleSelectedDate: todayStr(),
   data: {
     schedule: [],
     todos: [],
@@ -103,6 +105,10 @@ function setupModals() {
     btn.addEventListener("click", () => {
       state.editing = { collection: null, id: null };
       openModal(btn.dataset.openModal);
+      if (btn.dataset.openModal === "modal-schedule" && state.scheduleSelectedDate) {
+        const form = document.getElementById("form-schedule");
+        form.date.value = state.scheduleSelectedDate;
+      }
     });
   });
   document.querySelectorAll("[data-close-modal]").forEach((btn) => {
@@ -204,17 +210,79 @@ function currentMonthKey() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 /* ================================================================
- * 予定表
+ * 予定表（カレンダー表示）
  * ================================================================ */
+function renderCalendar() {
+  const { year, month } = state.calendar; // month: 0-11
+  document.getElementById("cal-month-label").textContent = `${year}年${month + 1}月`;
+
+  const repFilter = document.getElementById("schedule-rep-filter").value;
+  const itemsByDate = {};
+  state.data.schedule.forEach((item) => {
+    if (repFilter && item.rep !== repFilter) return;
+    if (!item.date) return;
+    (itemsByDate[item.date] = itemsByDate[item.date] || []).push(item);
+  });
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startWeekday = firstOfMonth.getDay(); // 0=日
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = todayStr();
+
+  const grid = document.getElementById("calendar-grid");
+  grid.innerHTML = "";
+
+  for (let i = 0; i < startWeekday; i++) {
+    const empty = document.createElement("div");
+    empty.className = "cal-cell cal-cell-empty";
+    grid.appendChild(empty);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const dayItems = itemsByDate[dateStr] || [];
+    const cell = document.createElement("button");
+    cell.type = "button";
+    cell.className = "cal-cell";
+    if (dateStr === today) cell.classList.add("cal-cell-today");
+    if (dateStr === state.scheduleSelectedDate) cell.classList.add("cal-cell-selected");
+    cell.innerHTML = `
+      <span class="cal-day-num">${day}</span>
+      ${dayItems.length ? `<span class="cal-day-dot">${dayItems.length > 9 ? "9+" : dayItems.length}</span>` : ""}`;
+    cell.addEventListener("click", () => {
+      state.scheduleSelectedDate = state.scheduleSelectedDate === dateStr ? null : dateStr;
+      renderSchedule();
+    });
+    grid.appendChild(cell);
+  }
+}
 function renderSchedule() {
-  const dateFilter = document.getElementById("schedule-date-filter").value;
+  renderCalendar();
+
   const repFilter = document.getElementById("schedule-rep-filter").value;
   let items = state.data.schedule.slice();
-  if (dateFilter) items = items.filter((i) => i.date === dateFilter);
   if (repFilter) items = items.filter((i) => i.rep === repFilter);
+  if (state.scheduleSelectedDate) items = items.filter((i) => i.date === state.scheduleSelectedDate);
   items.sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+
+  const titleEl = document.getElementById("schedule-day-title");
+  const clearBtn = document.getElementById("schedule-day-clear");
+  if (state.scheduleSelectedDate) {
+    titleEl.textContent =
+      state.scheduleSelectedDate === todayStr()
+        ? `本日の予定（${state.scheduleSelectedDate}）`
+        : `${state.scheduleSelectedDate} の予定`;
+    clearBtn.classList.remove("hidden");
+  } else {
+    titleEl.textContent = "すべての予定";
+    clearBtn.classList.add("hidden");
+  }
 
   const list = document.getElementById("schedule-list");
   list.innerHTML = "";
@@ -242,6 +310,10 @@ function renderSchedule() {
 }
 function editSchedule(item) {
   state.editing = { collection: "schedule", id: item.id };
+  if (item.date) {
+    const [y, m] = item.date.split("-").map(Number);
+    state.calendar = { year: y, month: m - 1 };
+  }
   const form = document.getElementById("form-schedule");
   form.date.value = item.date || "";
   form.rep.value = item.rep || "";
@@ -759,9 +831,33 @@ function escapeHtml(str) {
 
 /* ---------------- Wire filters to re-render ---------------- */
 function setupFilters() {
-  ["schedule-date-filter", "schedule-rep-filter"].forEach((id) =>
-    document.getElementById(id).addEventListener("change", renderSchedule)
-  );
+  document.getElementById("schedule-rep-filter").addEventListener("change", renderSchedule);
+  document.getElementById("cal-prev").addEventListener("click", () => {
+    state.calendar.month -= 1;
+    if (state.calendar.month < 0) {
+      state.calendar.month = 11;
+      state.calendar.year -= 1;
+    }
+    renderSchedule();
+  });
+  document.getElementById("cal-next").addEventListener("click", () => {
+    state.calendar.month += 1;
+    if (state.calendar.month > 11) {
+      state.calendar.month = 0;
+      state.calendar.year += 1;
+    }
+    renderSchedule();
+  });
+  document.getElementById("cal-today").addEventListener("click", () => {
+    const now = new Date();
+    state.calendar = { year: now.getFullYear(), month: now.getMonth() };
+    state.scheduleSelectedDate = todayStr();
+    renderSchedule();
+  });
+  document.getElementById("schedule-day-clear").addEventListener("click", () => {
+    state.scheduleSelectedDate = null;
+    renderSchedule();
+  });
   ["todo-status-filter", "todo-rep-filter"].forEach((id) =>
     document.getElementById(id).addEventListener("change", renderTodo)
   );
