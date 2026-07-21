@@ -943,6 +943,7 @@ function renderDashboard() {
   const maxVal = Math.max(1, ...thisYearMonthly, ...lastYear);
   const chartEl = document.getElementById("sales-chart");
   chartEl.innerHTML = "";
+  chartEl.parentElement.querySelectorAll(".chart-legend").forEach((el) => el.remove());
   const legend = document.createElement("div");
   legend.className = "chart-legend";
   legend.innerHTML = '<span class="legend-this">今年</span><span class="legend-last">前年</span>';
