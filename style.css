@@ -182,6 +182,17 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .chip-line2 {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; color: var(--text);
 }
+.week-item-chip.chip-type-来社 { background: #e6f7ea; color: #1f7a3a; }
+.week-item-chip.chip-type-会議 { background: #f2eafd; color: #6b3fc7; }
+.week-item-chip.chip-type-休み { background: #f1f1f1; color: var(--muted); }
+.week-item-chip.chip-type-その他 { background: #fff4e0; color: #a06a10; }
+
+/* --- 予定モーダル: 同行者チェックリスト --- */
+.companion-list {
+  display: flex; flex-direction: column; gap: 6px;
+  background: #f8f9fc; border-radius: 10px; padding: 10px; margin-top: -4px;
+}
+.companion-item { font-size: 13px; color: var(--text); }
 .btn-danger { background: #fdeceb; color: var(--danger); }
 
 .list { display: flex; flex-direction: column; gap: 10px; }

@@ -107,6 +107,8 @@ function setupModals() {
       if (btn.dataset.openModal === "modal-schedule") {
         document.getElementById("schedule-delete-btn").classList.add("hidden");
         document.getElementById("form-schedule").date.value = todayStr();
+        showScheduleCompanionSection(true);
+        renderCompanionList();
       }
     });
   });
@@ -126,8 +128,47 @@ function closeAllModals() {
   document.querySelectorAll(".modal-backdrop").forEach((m) => m.classList.add("hidden"));
   document.querySelectorAll(".modal-card").forEach((f) => f.reset && f.reset());
   document.getElementById("schedule-delete-btn").classList.add("hidden");
+  document.getElementById("schedule-companion-toggle").checked = false;
+  document.getElementById("schedule-companion-list").classList.add("hidden");
+  document.getElementById("schedule-companion-list").innerHTML = "";
   state.editing = { collection: null, id: null };
 }
+
+/* ---------------- 予定: 同行スタッフ選択 ---------------- */
+function showScheduleCompanionSection(show) {
+  const wrap = document.getElementById("schedule-companion-toggle").closest("label");
+  const addTodoLabel = document.querySelector('#form-schedule input[name="addTodo"]').closest("label");
+  [wrap, addTodoLabel].forEach((el) => el.classList.toggle("hidden", !show));
+  if (!show) {
+    document.getElementById("schedule-companion-toggle").checked = false;
+    document.getElementById("schedule-companion-list").classList.add("hidden");
+  }
+}
+function renderCompanionList() {
+  const list = document.getElementById("schedule-companion-list");
+  const currentRep = document.getElementById("form-schedule").rep.value;
+  list.innerHTML = "";
+  REPS.filter((rep) => rep !== currentRep).forEach((rep) => {
+    const label = document.createElement("label");
+    label.className = "checkbox-label companion-item";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = rep;
+    input.name = "companion";
+    label.appendChild(input);
+    label.appendChild(document.createTextNode(rep));
+    list.appendChild(label);
+  });
+}
+function getCheckedCompanions() {
+  return Array.from(document.querySelectorAll('#schedule-companion-list input[name="companion"]:checked')).map(
+    (el) => el.value
+  );
+}
+document.getElementById("schedule-companion-toggle").addEventListener("change", (e) => {
+  document.getElementById("schedule-companion-list").classList.toggle("hidden", !e.target.checked);
+});
+document.getElementById("form-schedule").rep.addEventListener("change", renderCompanionList);
 
 function populateRepSelects() {
   const selects = document.querySelectorAll(
@@ -235,6 +276,8 @@ function openScheduleModalFor(dateStr, rep) {
   const form = document.getElementById("form-schedule");
   form.date.value = dateStr;
   if (rep) form.rep.value = rep;
+  showScheduleCompanionSection(true);
+  renderCompanionList();
 }
 function renderSchedule() {
   const weekStart = new Date(state.calendar.weekStart);
@@ -299,12 +342,14 @@ function renderSchedule() {
       items.forEach((item) => {
         const chip = document.createElement("div");
         chip.className = "week-item-chip";
+        if (item.type) chip.classList.add("chip-type-" + item.type);
 
         const line1 = document.createElement("div");
         line1.className = "chip-line1";
         const timeSpan = document.createElement("span");
         timeSpan.className = "chip-time";
-        timeSpan.textContent = item.time || "終日";
+        const typeLabel = item.type ? item.type + " " : "";
+        timeSpan.textContent = `${typeLabel}${item.time || "終日"}`;
         line1.appendChild(timeSpan);
         if (items.length > 1) {
           const dupTag = document.createElement("span");
@@ -314,10 +359,11 @@ function renderSchedule() {
         }
         chip.appendChild(line1);
 
-        if (item.content) {
+        const line2Text = [item.clientName, item.content].filter(Boolean).join(" / ");
+        if (line2Text) {
           const line2 = document.createElement("div");
           line2.className = "chip-line2";
-          line2.textContent = item.content;
+          line2.textContent = line2Text;
           chip.appendChild(line2);
         }
 
@@ -339,10 +385,15 @@ function editSchedule(item) {
   const form = document.getElementById("form-schedule");
   form.date.value = item.date || "";
   form.rep.value = item.rep || "";
+  form.type.value = item.type || "外出";
+  form.clientName.value = item.clientName || "";
   form.time.value = item.time || "";
   form.content.value = item.content || "";
   form.memo.value = item.memo || "";
+  form.addTodo.checked = false;
   document.getElementById("schedule-delete-btn").classList.remove("hidden");
+  // 既存の予定の編集では、同行複製・TODO追加は行わない（二重登録を避けるため）
+  showScheduleCompanionSection(false);
   openModal("modal-schedule");
 }
 document.getElementById("form-schedule").addEventListener("submit", (e) => {
@@ -351,18 +402,49 @@ document.getElementById("form-schedule").addEventListener("submit", (e) => {
   const payload = {
     date: f.date.value,
     rep: f.rep.value,
+    type: f.type.value,
+    clientName: f.clientName.value,
     time: f.time.value,
     content: f.content.value,
     memo: f.memo.value,
   };
-  const p =
-    state.editing.collection === "schedule"
-      ? updateDoc("schedule", state.editing.id, payload)
-      : addDoc("schedule", payload);
-  p.then(() => {
-    showToast("予定を保存しました");
-    closeAllModals();
-  }).catch((err) => showToast("保存エラー: " + err.message));
+  const isNew = state.editing.collection !== "schedule";
+  const companionReps = isNew ? getCheckedCompanions() : [];
+  const addTodoFlag = isNew && f.addTodo.checked;
+
+  const writes = [];
+  writes.push(
+    isNew ? addDoc("schedule", payload) : updateDoc("schedule", state.editing.id, payload)
+  );
+  companionReps.forEach((repName) => {
+    writes.push(addDoc("schedule", { ...payload, rep: repName }));
+  });
+
+  if (addTodoFlag && payload.content) {
+    const todoAssignees = [payload.rep, ...companionReps];
+    todoAssignees.forEach((assignee) => {
+      writes.push(
+        addDoc("todos", {
+          assignee,
+          requester: "",
+          title: payload.content,
+          contactMethod: "",
+          category: payload.type || "",
+          requestDate: todayStr(),
+          dueDate: payload.date,
+          status: "未着手",
+          memo: payload.clientName ? `お客様: ${payload.clientName}` : "",
+        })
+      );
+    });
+  }
+
+  Promise.all(writes)
+    .then(() => {
+      showToast("予定を保存しました");
+      closeAllModals();
+    })
+    .catch((err) => showToast("保存エラー: " + err.message));
 });
 document.getElementById("schedule-delete-btn").addEventListener("click", () => {
   if (state.editing.collection !== "schedule" || !state.editing.id) return;

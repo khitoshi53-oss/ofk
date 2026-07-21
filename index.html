@@ -150,9 +150,25 @@
     <h3>予定を追加</h3>
     <label>日付<input type="date" name="date" required /></label>
     <label>担当者<select name="rep" required></select></label>
+    <label>種別
+      <select name="type">
+        <option value="外出">外出</option>
+        <option value="来社">来社</option>
+        <option value="会議">会議</option>
+        <option value="休み">休み</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
+    <label>お客様名<input type="text" name="clientName" placeholder="取引先・お客様名" /></label>
     <label>時間<input type="text" name="time" placeholder="例: 10:00 または フリー" required /></label>
     <label>内容<input type="text" name="content" placeholder="訪問先・用件など" required /></label>
     <label>メモ<textarea name="memo" rows="2"></textarea></label>
+
+    <label class="checkbox-label"><input type="checkbox" id="schedule-companion-toggle" /> 同行者がいる（他のスタッフにも同じ予定を追加）</label>
+    <div id="schedule-companion-list" class="companion-list hidden"></div>
+
+    <label class="checkbox-label"><input type="checkbox" name="addTodo" /> 担当者のTODOにも追加する</label>
+
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
       <button type="button" id="schedule-delete-btn" class="btn-secondary btn-danger hidden">削除</button>
