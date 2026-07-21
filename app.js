@@ -365,12 +365,6 @@ function renderSchedule() {
         const typeLabel = item.type ? item.type + " " : "";
         timeSpan.textContent = `${typeLabel}${item.time || "終日"}`;
         line1.appendChild(timeSpan);
-        if (items.length > 1) {
-          const dupTag = document.createElement("span");
-          dupTag.className = "chip-dup";
-          dupTag.textContent = "重複";
-          line1.appendChild(dupTag);
-        }
         chip.appendChild(line1);
 
         const line2Text = [item.clientName, item.content].filter(Boolean).join(" / ");
