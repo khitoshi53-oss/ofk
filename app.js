@@ -299,7 +299,28 @@ function renderSchedule() {
       items.forEach((item) => {
         const chip = document.createElement("div");
         chip.className = "week-item-chip";
-        chip.textContent = `${item.time ? item.time + " " : ""}${item.content || ""}`;
+
+        const line1 = document.createElement("div");
+        line1.className = "chip-line1";
+        const timeSpan = document.createElement("span");
+        timeSpan.className = "chip-time";
+        timeSpan.textContent = item.time || "終日";
+        line1.appendChild(timeSpan);
+        if (items.length > 1) {
+          const dupTag = document.createElement("span");
+          dupTag.className = "chip-dup";
+          dupTag.textContent = "重複";
+          line1.appendChild(dupTag);
+        }
+        chip.appendChild(line1);
+
+        if (item.content) {
+          const line2 = document.createElement("div");
+          line2.className = "chip-line2";
+          line2.textContent = item.content;
+          chip.appendChild(line2);
+        }
+
         if (item.memo) chip.title = item.memo;
         chip.addEventListener("click", (e) => {
           e.stopPropagation();

@@ -162,7 +162,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .week-day-header.week-sun { color: var(--danger); background: #fdeceb; }
 .week-day-header.week-today { outline: 2px solid var(--primary); outline-offset: -2px; }
 .week-day-cell {
-  background: #fafbfd; border-radius: 8px; padding: 4px; min-height: 56px;
+  background: #fafbfd; border-radius: 8px; padding: 4px; min-height: 64px;
   display: flex; flex-direction: column; gap: 3px; cursor: pointer;
 }
 .week-day-cell.week-sat { background: #f4f8ff; }
@@ -171,9 +171,17 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .week-item-chip {
   background: #eef2fd; color: var(--primary-dark); border-radius: 6px;
   padding: 3px 5px; font-size: 10.5px; line-height: 1.3; cursor: pointer;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .week-item-chip:active { background: var(--primary); color: #fff; }
+.chip-line1 { display: flex; align-items: center; justify-content: space-between; gap: 4px; font-weight: 700; }
+.chip-time { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chip-dup {
+  flex: none; font-size: 9px; font-weight: 700; color: var(--danger);
+  background: #fdeceb; border-radius: 4px; padding: 0 3px; line-height: 1.5;
+}
+.chip-line2 {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; color: var(--text);
+}
 .btn-danger { background: #fdeceb; color: var(--danger); }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
