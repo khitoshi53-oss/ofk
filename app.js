@@ -893,6 +893,8 @@ function renderDashboard() {
     dealConfirmedTarget: 0,
     dealProspectTarget: 0,
     businessDaysOverride: {},
+    manualSalesAdjustment: 0,
+    manualProfitAdjustment: 0,
   };
   const now = new Date();
   const monthIdx = now.getMonth(); // 0-11
@@ -904,8 +906,11 @@ function renderDashboard() {
 
   const sum = (arr, key) => arr.reduce((s, i) => s + (Number(i[key]) || 0), 0);
 
-  const salesInvoiced = sum(confirmedInvoiced, "salesAmount");
-  const profitInvoiced = sum(confirmedInvoiced, "grossProfit");
+  const manualSalesAdjustment = Number(settings.manualSalesAdjustment) || 0;
+  const manualProfitAdjustment = Number(settings.manualProfitAdjustment) || 0;
+
+  const salesInvoiced = sum(confirmedInvoiced, "salesAmount") + manualSalesAdjustment;
+  const profitInvoiced = sum(confirmedInvoiced, "grossProfit") + manualProfitAdjustment;
   const salesConfirmedNoInvoice = sum(confirmedNotInvoiced, "salesAmount");
   const profitConfirmedNoInvoice = sum(confirmedNotInvoiced, "grossProfit");
   const salesProspect = sum(prospects, "salesAmount");
@@ -919,8 +924,8 @@ function renderDashboard() {
   const kpiGrid = document.getElementById("kpi-grid");
   kpiGrid.innerHTML = "";
   const kpis = [
-    { label: "売上（伝票発行済）", value: yen(salesInvoiced), sub: `目標 ${yen(salesTarget)}`, cls: salesInvoiced >= salesTarget && salesTarget > 0 ? "good" : "" },
-    { label: "粗利（伝票発行済）", value: yen(profitInvoiced), sub: `目標 ${yen(profitTarget)}`, cls: profitInvoiced >= profitTarget && profitTarget > 0 ? "good" : "" },
+    { label: "売上（伝票発行済）", value: yen(salesInvoiced), sub: `目標 ${yen(salesTarget)}${manualSalesAdjustment ? ` ／ 少額売掛金 +${yen(manualSalesAdjustment)}` : ""}`, cls: salesInvoiced >= salesTarget && salesTarget > 0 ? "good" : "" },
+    { label: "粗利（伝票発行済）", value: yen(profitInvoiced), sub: `目標 ${yen(profitTarget)}${manualProfitAdjustment ? ` ／ 少額売掛金 +${yen(manualProfitAdjustment)}` : ""}`, cls: profitInvoiced >= profitTarget && profitTarget > 0 ? "good" : "" },
     { label: "確定（伝票未発行）売上", value: yen(salesConfirmedNoInvoice), sub: `目標 ${yen(dealConfirmedTarget)} ／ 粗利 ${yen(profitConfirmedNoInvoice)}`, cls: salesConfirmedNoInvoice >= dealConfirmedTarget && dealConfirmedTarget > 0 ? "good" : "" },
     { label: "見込 売上", value: yen(salesProspect), sub: `目標 ${yen(dealProspectTarget)} ／ 粗利 ${yen(profitProspect)}`, cls: salesProspect >= dealProspectTarget && dealProspectTarget > 0 ? "good" : "" },
   ];
@@ -1033,6 +1038,8 @@ function fillTargetForm() {
     0;
   form.dealConfirmedTarget.value = settings.dealConfirmedTarget || 0;
   form.dealProspectTarget.value = settings.dealProspectTarget || 0;
+  form.manualSalesAdjustment.value = settings.manualSalesAdjustment || 0;
+  form.manualProfitAdjustment.value = settings.manualProfitAdjustment || 0;
   const businessDaysOverride = settings.businessDaysOverride && settings.businessDaysOverride[monthKey];
   form.businessDays.value =
     businessDaysOverride !== undefined && businessDaysOverride !== null && businessDaysOverride !== ""
@@ -1060,6 +1067,8 @@ document.getElementById("form-target").addEventListener("submit", (e) => {
     monthlyProfitTargetByMonth,
     dealConfirmedTarget: Number(f.dealConfirmedTarget.value) || 0,
     dealProspectTarget: Number(f.dealProspectTarget.value) || 0,
+    manualSalesAdjustment: Number(f.manualSalesAdjustment.value) || 0,
+    manualProfitAdjustment: Number(f.manualProfitAdjustment.value) || 0,
     businessDaysOverride,
   };
 
@@ -1137,6 +1146,8 @@ function loadSettings() {
           dealConfirmedTarget: 0,
           dealProspectTarget: 0,
           businessDaysOverride: {},
+          manualSalesAdjustment: 0,
+          manualProfitAdjustment: 0,
         };
         state.db.collection("settings").doc("main").set(defaults);
         state.data.settings = defaults;

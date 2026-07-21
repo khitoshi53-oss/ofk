@@ -232,6 +232,9 @@
     <label>確定（伝票未発行）売上目標<input type="number" name="dealConfirmedTarget" min="0" step="1" /></label>
     <label>見込売上目標<input type="number" name="dealProspectTarget" min="0" step="1" /></label>
     <label>日報提出状況の営業日数（今月）<input type="number" name="businessDays" min="0" step="1" /></label>
+    <p class="muted small">確定/見込とは別枠の少額売掛金など（売上・粗利の実績に加算されます）</p>
+    <label>売上への加算額（少額売掛金等）<input type="number" name="manualSalesAdjustment" min="0" step="1" /></label>
+    <label>粗利への加算額<input type="number" name="manualProfitAdjustment" min="0" step="1" /></label>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
       <button type="submit" class="btn-primary">保存</button>
