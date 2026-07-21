@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#2f6fed" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="営業管理" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<title>営業管理アプリ</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ログイン前ゲート -->
+<div id="gate" class="gate">
+  <div class="gate-card">
+    <h1>📊 営業管理アプリ</h1>
+    <p class="muted">お名前を選択してください</p>
+    <div id="gate-rep-buttons" class="gate-rep-buttons"></div>
+    <p class="muted small" id="gate-status">接続中…</p>
+  </div>
+</div>
+
+<!-- アプリ本体 -->
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div class="topbar-title">📊 営業管理</div>
+    <div class="topbar-user">
+      <span id="current-user-label"></span>
+      <button id="switch-user-btn" class="link-btn">切替</button>
+    </div>
+  </header>
+
+  <main id="views">
+    <!-- ダッシュボード -->
+    <section id="view-dashboard" class="view">
+      <h2>ダッシュボード</h2>
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div class="card">
+        <h3>月別売上（今年 vs 前年）</h3>
+        <div id="sales-chart" class="bar-chart"></div>
+      </div>
+      <div class="card">
+        <h3>TODO残件数（担当者別）</h3>
+        <table class="mini-table" id="dash-todo-table"></table>
+      </div>
+      <div class="card">
+        <h3>日報提出状況（今月）</h3>
+        <table class="mini-table" id="dash-report-table"></table>
+      </div>
+    </section>
+
+    <!-- 予定表 -->
+    <section id="view-schedule" class="view hidden">
+      <div class="view-header">
+        <h2>予定表</h2>
+        <button class="fab-inline" data-open-modal="modal-schedule">＋ 予定を追加</button>
+      </div>
+      <div class="filter-row">
+        <input type="date" id="schedule-date-filter" />
+        <select id="schedule-rep-filter"><option value="">全担当者</option></select>
+      </div>
+      <div id="schedule-list" class="list"></div>
+    </section>
+
+    <!-- TODO -->
+    <section id="view-todo" class="view hidden">
+      <div class="view-header">
+        <h2>TODO</h2>
+        <button class="fab-inline" data-open-modal="modal-todo">＋ タスクを追加</button>
+      </div>
+      <div class="filter-row">
+        <select id="todo-status-filter">
+          <option value="">全ステータス</option>
+          <option value="未着手">未着手</option>
+          <option value="進行中">進行中</option>
+          <option value="完了">完了</option>
+        </select>
+        <select id="todo-rep-filter"><option value="">全担当者</option></select>
+      </div>
+      <div id="todo-list" class="list"></div>
+    </section>
+
+    <!-- 日報 -->
+    <section id="view-reports" class="view hidden">
+      <div class="view-header">
+        <h2>日報</h2>
+        <button class="fab-inline" data-open-modal="modal-report">＋ 日報を追加</button>
+      </div>
+      <div class="filter-row">
+        <select id="report-rep-filter"></select>
+        <input type="month" id="report-month-filter" />
+      </div>
+      <div class="card" id="report-summary"></div>
+      <div id="report-list" class="list"></div>
+    </section>
+
+    <!-- 確定・見込 -->
+    <section id="view-deals" class="view hidden">
+      <div class="view-header">
+        <h2>確定・見込</h2>
+        <button class="fab-inline" data-open-modal="modal-deal">＋ 案件を追加</button>
+      </div>
+      <div class="filter-row">
+        <select id="deal-type-filter">
+          <option value="">確定・見込 すべて</option>
+          <option value="確定">確定のみ</option>
+          <option value="見込">見込のみ</option>
+        </select>
+        <select id="deal-rep-filter"><option value="">全担当者</option></select>
+      </div>
+      <div class="card" id="deal-summary"></div>
+      <div id="deal-list" class="list"></div>
+    </section>
+
+    <!-- 取引先 -->
+    <section id="view-clients" class="view hidden">
+      <div class="view-header">
+        <h2>取引先登録台帳</h2>
+        <button class="fab-inline" data-open-modal="modal-client">＋ 取引先を追加</button>
+      </div>
+      <input type="search" id="client-search" placeholder="会社名・フリガナで検索" class="search-box" />
+      <div id="client-list" class="list"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="nav-btn active" data-view="view-dashboard"><span>📊</span>ダッシュボード</button>
+    <button class="nav-btn" data-view="view-schedule"><span>📅</span>予定表</button>
+    <button class="nav-btn" data-view="view-todo"><span>✅</span>TODO</button>
+    <button class="nav-btn" data-view="view-reports"><span>📝</span>日報</button>
+    <button class="nav-btn" data-view="view-deals"><span>🎯</span>確定/見込</button>
+    <button class="nav-btn" data-view="view-clients"><span>🏢</span>取引先</button>
+  </nav>
+</div>
+
+<!-- モーダル: 予定追加 -->
+<div class="modal-backdrop hidden" id="modal-schedule">
+  <form class="modal-card" id="form-schedule">
+    <h3>予定を追加</h3>
+    <label>日付<input type="date" name="date" required /></label>
+    <label>担当者<select name="rep" required></select></label>
+    <label>時間<input type="text" name="time" placeholder="例: 10:00 または フリー" required /></label>
+    <label>内容<input type="text" name="content" placeholder="訪問先・用件など" required /></label>
+    <label>メモ<textarea name="memo" rows="2"></textarea></label>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- モーダル: TODO追加 -->
+<div class="modal-backdrop hidden" id="modal-todo">
+  <form class="modal-card" id="form-todo">
+    <h3>タスクを追加</h3>
+    <label>作業者<select name="assignee" required></select></label>
+    <label>依頼者<input type="text" name="requester" /></label>
+    <label>タスク名<input type="text" name="title" required /></label>
+    <label>連絡方法<input type="text" name="contactMethod" placeholder="電話・メール等" /></label>
+    <label>カテゴリ<input type="text" name="category" /></label>
+    <label>依頼日<input type="date" name="requestDate" /></label>
+    <label>期限<input type="date" name="dueDate" /></label>
+    <label>ステータス
+      <select name="status">
+        <option value="未着手">未着手</option>
+        <option value="進行中">進行中</option>
+        <option value="完了">完了</option>
+      </select>
+    </label>
+    <label>メモ<textarea name="memo" rows="2"></textarea></label>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- モーダル: 日報追加 -->
+<div class="modal-backdrop hidden" id="modal-report">
+  <form class="modal-card" id="form-report">
+    <h3>日報を追加</h3>
+    <label>担当者<select name="rep" required></select></label>
+    <label>日付<input type="date" name="date" required /></label>
+    <label>顧客名<input type="text" name="clientName" required /></label>
+    <label>内容<input type="text" name="content" /></label>
+    <label>作業区分<input type="text" name="workType" placeholder="訪問・電話・見積 等" /></label>
+    <label>請求対象<select name="billing"><option value="対象">対象</option><option value="対象外">対象外</option></select></label>
+    <label>次回訪問<input type="date" name="nextVisit" /></label>
+    <label>時間<input type="text" name="time" placeholder="例: 10:00〜11:00" /></label>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- モーダル: 案件(確定/見込)追加 -->
+<div class="modal-backdrop hidden" id="modal-deal">
+  <form class="modal-card" id="form-deal">
+    <h3>案件を追加</h3>
+    <label>区分
+      <select name="type" required>
+        <option value="確定">確定</option>
+        <option value="見込">見込</option>
+      </select>
+    </label>
+    <label>担当者<select name="owner" required></select></label>
+    <label>顧客名<input type="text" name="clientName" required /></label>
+    <label>商品・サービス<input type="text" name="product" /></label>
+    <label>売上金額(税別)<input type="number" name="salesAmount" min="0" step="1" /></label>
+    <label>粗利益(税別)<input type="number" name="grossProfit" min="0" step="1" /></label>
+    <label>確度(%)<input type="number" name="probability" min="0" max="100" step="1" /></label>
+    <label>ステージ<input type="text" name="stage" placeholder="商談中・見積提出済 等" /></label>
+    <label>受注予定日<input type="date" name="expectedDate" /></label>
+    <label>競合状況<input type="text" name="competition" placeholder="競合なし 等" /></label>
+    <label class="checkbox-label"><input type="checkbox" name="invoiced" /> 伝票発行済（確定案件のみ）</label>
+    <label>備考<textarea name="memo" rows="2"></textarea></label>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- モーダル: 取引先追加 -->
+<div class="modal-backdrop hidden" id="modal-client">
+  <form class="modal-card" id="form-client">
+    <h3>取引先を追加</h3>
+    <label>会社名<input type="text" name="company" required /></label>
+    <label>フリガナ<input type="text" name="kanaCompany" /></label>
+    <label>代表者名<input type="text" name="repName" /></label>
+    <label>〒 郵便番号<input type="text" name="zip" /></label>
+    <label>住所<input type="text" name="address" /></label>
+    <label>電話番号<input type="tel" name="tel" /></label>
+    <label>FAX番号<input type="tel" name="fax" /></label>
+    <label>担当部署<input type="text" name="dept" /></label>
+    <label>担当者名<input type="text" name="contactName" /></label>
+    <label>メールアドレス<input type="email" name="email" /></label>
+    <label>支払い条件<input type="text" name="paymentTerms" placeholder="例: 月末締め翌月末払い" /></label>
+    <label>備考<textarea name="memo" rows="2"></textarea></label>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
