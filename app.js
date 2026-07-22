@@ -1243,6 +1243,7 @@ document.getElementById("rep-sales-save-btn").addEventListener("click", () => {
       state.data.settings = { ...(state.data.settings || {}), repSales };
       showToast("社員別 売上・粗利を保存しました");
       closeAllModals();
+      renderDashboard();
     })
     .catch((err) => showToast("保存エラー: " + err.message));
 });
@@ -1274,8 +1275,12 @@ function renderDashboard() {
   const manualSalesAdjustment = Number(settings.manualSalesAdjustment) || 0;
   const manualProfitAdjustment = Number(settings.manualProfitAdjustment) || 0;
 
-  const salesInvoiced = sum(confirmedInvoiced, "salesAmount") + manualSalesAdjustment;
-  const profitInvoiced = sum(confirmedInvoiced, "grossProfit") + manualProfitAdjustment;
+  const repSales = settings.repSales || {};
+  const repSalesTotal = REPS.reduce((s, rep) => s + (Number(repSales[rep] && repSales[rep].sales) || 0), 0);
+  const repProfitTotal = REPS.reduce((s, rep) => s + (Number(repSales[rep] && repSales[rep].profit) || 0), 0);
+
+  const salesInvoiced = sum(confirmedInvoiced, "salesAmount") + manualSalesAdjustment + repSalesTotal;
+  const profitInvoiced = sum(confirmedInvoiced, "grossProfit") + manualProfitAdjustment + repProfitTotal;
   const salesConfirmedNoInvoice = sum(confirmedNotInvoiced, "salesAmount");
   const profitConfirmedNoInvoice = sum(confirmedNotInvoiced, "grossProfit");
   const salesProspect = sum(prospects, "salesAmount");
@@ -1287,8 +1292,8 @@ function renderDashboard() {
   const kpiGrid = document.getElementById("kpi-grid");
   kpiGrid.innerHTML = "";
   const kpis = [
-    { label: "売上（伝票発行済）", value: yen(salesInvoiced), sub: `目標 ${yen(salesTarget)}${manualSalesAdjustment ? ` ／ 少額売掛金 +${yen(manualSalesAdjustment)}` : ""}`, cls: salesInvoiced >= salesTarget && salesTarget > 0 ? "good" : "", clickable: true },
-    { label: "粗利（伝票発行済）", value: yen(profitInvoiced), sub: `目標 ${yen(profitTarget)}${manualProfitAdjustment ? ` ／ 少額売掛金 +${yen(manualProfitAdjustment)}` : ""}`, cls: profitInvoiced >= profitTarget && profitTarget > 0 ? "good" : "", clickable: true },
+    { label: "売上（伝票発行済）", value: yen(salesInvoiced), sub: `目標 ${yen(salesTarget)}${manualSalesAdjustment ? ` ／ 少額売掛金 +${yen(manualSalesAdjustment)}` : ""}${repSalesTotal ? ` ／ 社員別 +${yen(repSalesTotal)}` : ""}`, cls: salesInvoiced >= salesTarget && salesTarget > 0 ? "good" : "", clickable: true },
+    { label: "粗利（伝票発行済）", value: yen(profitInvoiced), sub: `目標 ${yen(profitTarget)}${manualProfitAdjustment ? ` ／ 少額売掛金 +${yen(manualProfitAdjustment)}` : ""}${repProfitTotal ? ` ／ 社員別 +${yen(repProfitTotal)}` : ""}`, cls: profitInvoiced >= profitTarget && profitTarget > 0 ? "good" : "", clickable: true },
     { label: "確定（伝票未発行）売上", value: yen(salesConfirmedNoInvoice), sub: `粗利 ${yen(profitConfirmedNoInvoice)}`, cls: "" },
     { label: "見込 売上", value: yen(salesProspect), sub: `粗利 ${yen(profitProspect)}`, cls: "" },
   ];
