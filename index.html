@@ -128,6 +128,11 @@
           <option value="確定">確定のみ</option>
           <option value="見込">見込のみ</option>
         </select>
+        <select id="deal-category-filter">
+          <option value="">リース契約・売掛 すべて</option>
+          <option value="リース契約">リース契約のみ</option>
+          <option value="売掛">売掛のみ</option>
+        </select>
         <select id="deal-rep-filter"><option value="">全担当者</option></select>
       </div>
       <div class="card" id="deal-summary"></div>
@@ -280,6 +285,7 @@
 <div class="modal-backdrop hidden" id="modal-rep-sales">
   <div class="modal-card" id="rep-sales-card">
     <h3>社員別 売上・粗利（伝票発行済）</h3>
+    <p class="muted small">売掛（確定・伝票発行済）は案件データから自動集計されます。手動入力欄はそれ以外の調整額（リース契約分等）です。</p>
     <div id="rep-sales-body"></div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close-modal>閉じる</button>
@@ -296,6 +302,12 @@
       <select name="type" required>
         <option value="確定">確定</option>
         <option value="見込">見込</option>
+      </select>
+    </label>
+    <label>契約種別
+      <select name="category" required>
+        <option value="リース契約">リース契約</option>
+        <option value="売掛">売掛</option>
       </select>
     </label>
     <label>担当者<select name="owner" required></select></label>

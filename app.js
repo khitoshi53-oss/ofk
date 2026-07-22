@@ -830,9 +830,11 @@ document.getElementById("report-delete-btn").addEventListener("click", () => {
  * ================================================================ */
 function renderDeals() {
   const typeFilter = document.getElementById("deal-type-filter").value;
+  const categoryFilter = document.getElementById("deal-category-filter").value;
   const repFilter = document.getElementById("deal-rep-filter").value;
   let items = state.data.deals.slice();
   if (typeFilter) items = items.filter((i) => i.type === typeFilter);
+  if (categoryFilter) items = items.filter((i) => (i.category || "売掛") === categoryFilter);
   if (repFilter) items = items.filter((i) => i.owner === repFilter);
 
   const totalSales = items.reduce((s, i) => s + (Number(i.salesAmount) || 0), 0);
@@ -855,7 +857,7 @@ function renderDeals() {
     const el = document.createElement("div");
     el.className = "list-item";
     el.innerHTML = `
-      <div class="row1"><span>${escapeHtml(item.clientName || "")}</span><span class="tag type-${escapeHtml(item.type || "見込")}">${escapeHtml(item.type || "見込")}</span></div>
+      <div class="row1"><span>${escapeHtml(item.clientName || "")}</span><span class="row1-tags"><span class="tag type-${escapeHtml(item.type || "見込")}">${escapeHtml(item.type || "見込")}</span><span class="tag">${escapeHtml(item.category || "売掛")}</span></span></div>
       <div class="row2">担当: ${escapeHtml(item.owner || "-")} ／ 商品: ${escapeHtml(item.product || "-")}</div>
       <div class="row2">売上: ${yen(item.salesAmount)} ／ 粗利: ${yen(item.grossProfit)} ／ 確度: ${escapeHtml(String(item.probability ?? "-"))}%</div>
       <div class="row2">ステージ: ${escapeHtml(item.stage || "-")} ／ 受注予定: ${escapeHtml(item.expectedDate || "-")}</div>
@@ -878,6 +880,7 @@ function editDeal(item) {
   state.editing = { collection: "deals", id: item.id };
   const form = document.getElementById("form-deal");
   form.type.value = item.type || "確定";
+  form.category.value = item.category || "売掛";
   form.owner.value = item.owner || "";
   form.clientName.value = item.clientName || "";
   form.product.value = item.product || "";
@@ -898,6 +901,7 @@ document.getElementById("form-deal").addEventListener("submit", (e) => {
   const probability = Number(f.probability.value) || 0;
   const payload = {
     type: f.type.value,
+    category: f.category.value,
     owner: f.owner.value,
     clientName: f.clientName.value,
     product: f.product.value,
@@ -1187,38 +1191,66 @@ document.getElementById("expense-delete-btn").addEventListener("click", () => {
 /* ================================================================
  * 社員別 売上・粗利（管理者＝川﨑のみ入力・変更可）
  * ================================================================ */
+// 売掛（確定・伝票発行済）案件を担当者ごとに自動集計する
+function getAutoRepReceivableTotals() {
+  const totals = {};
+  state.data.deals
+    .filter((d) => (d.category || "売掛") === "売掛" && d.type === "確定" && d.invoiced)
+    .forEach((d) => {
+      const rep = d.owner || "";
+      if (!rep) return;
+      totals[rep] = totals[rep] || { sales: 0, profit: 0 };
+      totals[rep].sales += Number(d.salesAmount) || 0;
+      totals[rep].profit += Number(d.grossProfit) || 0;
+    });
+  return totals;
+}
 function openRepSalesModal() {
   const settings = state.data.settings || {};
   const repSales = settings.repSales || {};
+  const autoTotals = getAutoRepReceivableTotals();
   const isAdmin = state.currentUser === ADMIN_REP;
   const body = document.getElementById("rep-sales-body");
 
   const rows = REPS.map((rep) => {
     const entry = repSales[rep] || {};
-    const sales = Number(entry.sales) || 0;
-    const profit = Number(entry.profit) || 0;
+    const manualSales = Number(entry.sales) || 0;
+    const manualProfit = Number(entry.profit) || 0;
+    const auto = autoTotals[rep] || { sales: 0, profit: 0 };
+    const totalSales = auto.sales + manualSales;
+    const totalProfit = auto.profit + manualProfit;
     if (isAdmin) {
       return `
         <tr>
           <td>${escapeHtml(rep)}</td>
-          <td><input type="number" min="0" step="1" class="rep-sales-input" data-rep="${escapeHtml(rep)}" data-field="sales" value="${sales}" /></td>
-          <td><input type="number" min="0" step="1" class="rep-sales-input" data-rep="${escapeHtml(rep)}" data-field="profit" value="${profit}" /></td>
+          <td>${yen(auto.sales)}</td>
+          <td>${yen(auto.profit)}</td>
+          <td><input type="number" min="0" step="1" class="rep-sales-input" data-rep="${escapeHtml(rep)}" data-field="sales" value="${manualSales}" /></td>
+          <td><input type="number" min="0" step="1" class="rep-sales-input" data-rep="${escapeHtml(rep)}" data-field="profit" value="${manualProfit}" /></td>
+          <td>${yen(totalSales)}</td>
+          <td>${yen(totalProfit)}</td>
         </tr>`;
     }
     return `
       <tr>
         <td>${escapeHtml(rep)}</td>
-        <td>${yen(sales)}</td>
-        <td>${yen(profit)}</td>
+        <td>${yen(auto.sales)}</td>
+        <td>${yen(auto.profit)}</td>
+        <td>${yen(manualSales)}</td>
+        <td>${yen(manualProfit)}</td>
+        <td>${yen(totalSales)}</td>
+        <td>${yen(totalProfit)}</td>
       </tr>`;
   }).join("");
 
   body.innerHTML = `
+    <div class="rep-sales-table-wrap">
     <table class="mini-table rep-sales-table">
-      <tr><th>担当者</th><th>売上</th><th>粗利</th></tr>
+      <tr><th>担当者</th><th>売掛確定<br>売上</th><th>売掛確定<br>粗利</th><th>手動入力<br>売上</th><th>手動入力<br>粗利</th><th>合計<br>売上</th><th>合計<br>粗利</th></tr>
       ${rows}
     </table>
-    <p class="muted small">${isAdmin ? "値を入力して「保存」を押してください（管理者のみ編集できます）。" : "この金額の入力・変更は管理者（川﨑）のみ行えます。"}</p>`;
+    </div>
+    <p class="muted small">「売掛確定」は種別が確定かつ伝票発行済の売掛案件から自動集計しています。「手動入力」はそれ以外の調整額（リース契約分等）です。${isAdmin ? "手動入力欄を変更して「保存」を押してください（管理者のみ編集できます）。" : "手動入力欄の変更は管理者（川﨑）のみ行えます。"}</p>`;
 
   document.getElementById("rep-sales-save-btn").classList.toggle("hidden", !isAdmin);
   openModal("modal-rep-sales");
@@ -1521,7 +1553,7 @@ function setupFilters() {
   ["report-rep-filter", "report-month-filter"].forEach((id) =>
     document.getElementById(id).addEventListener("change", renderReports)
   );
-  ["deal-type-filter", "deal-rep-filter"].forEach((id) =>
+  ["deal-type-filter", "deal-category-filter", "deal-rep-filter"].forEach((id) =>
     document.getElementById(id).addEventListener("change", renderDeals)
   );
   ["request-type-filter", "request-status-filter", "request-rep-filter"].forEach((id) =>
