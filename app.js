@@ -125,6 +125,9 @@ function setupModals() {
       if (btn.dataset.openModal === "modal-target") {
         fillTargetForm();
       }
+      if (btn.dataset.openModal === "modal-deal") {
+        updateDealFormVisibility();
+      }
       if (btn.dataset.openModal === "modal-leave") {
         document.getElementById("leave-modal-title").textContent = "有給休暇申請";
         document.getElementById("leave-delete-btn").classList.add("hidden");
@@ -856,14 +859,16 @@ function renderDeals() {
   items.forEach((item) => {
     const el = document.createElement("div");
     el.className = "list-item";
+    const isReceivable = (item.category || "売掛") === "売掛";
+    const titleText = isReceivable ? item.receiptNumber ? `伝票番号: ${item.receiptNumber}` : "伝票番号未入力" : item.clientName || "";
     el.innerHTML = `
-      <div class="row1"><span>${escapeHtml(item.clientName || "")}</span><span class="row1-tags"><span class="tag type-${escapeHtml(item.type || "見込")}">${escapeHtml(item.type || "見込")}</span><span class="tag">${escapeHtml(item.category || "売掛")}</span></span></div>
-      <div class="row2">担当: ${escapeHtml(item.owner || "-")} ／ 商品: ${escapeHtml(item.product || "-")}</div>
-      <div class="row2">売上: ${yen(item.salesAmount)} ／ 粗利: ${yen(item.grossProfit)} ／ 確度: ${escapeHtml(String(item.probability ?? "-"))}%</div>
-      <div class="row2">ステージ: ${escapeHtml(item.stage || "-")} ／ 受注予定: ${escapeHtml(item.expectedDate || "-")}</div>
+      <div class="row1"><span>${escapeHtml(titleText)}</span><span class="row1-tags"><span class="tag type-${escapeHtml(item.type || "見込")}">${escapeHtml(item.type || "見込")}</span><span class="tag">${escapeHtml(item.category || "売掛")}</span></span></div>
+      <div class="row2">担当: ${escapeHtml(item.owner || "-")}${isReceivable ? "" : ` ／ 商品: ${escapeHtml(item.product || "-")}`}</div>
+      <div class="row2">売上: ${yen(item.salesAmount)} ／ 粗利: ${yen(item.grossProfit)}${isReceivable ? "" : ` ／ 確度: ${escapeHtml(String(item.probability ?? "-"))}%`}</div>
+      ${isReceivable ? "" : `<div class="row2">ステージ: ${escapeHtml(item.stage || "-")} ／ 受注予定: ${escapeHtml(item.expectedDate || "-")}</div>`}
       <div class="tags">
         ${item.invoiced ? '<span class="tag">伝票発行済</span>' : ""}
-        ${item.competition ? `<span class="tag">${escapeHtml(item.competition)}</span>` : ""}
+        ${!isReceivable && item.competition ? `<span class="tag">${escapeHtml(item.competition)}</span>` : ""}
       </div>
       <div class="item-actions">
         <button data-edit="${item.id}">編集</button>
@@ -876,12 +881,25 @@ function renderDeals() {
     list.appendChild(el);
   });
 }
+// 契約種別=売掛のときは伝票番号・担当者・売上金額・粗利益のみ表示する
+function updateDealFormVisibility() {
+  const form = document.getElementById("form-deal");
+  const isReceivable = form.category.value === "売掛";
+  document
+    .querySelectorAll("#form-deal .deal-field-full")
+    .forEach((el) => el.classList.toggle("hidden", isReceivable));
+  document
+    .querySelectorAll("#form-deal .deal-field-receivable")
+    .forEach((el) => el.classList.toggle("hidden", !isReceivable));
+}
+document.getElementById("form-deal").category.addEventListener("change", updateDealFormVisibility);
 function editDeal(item) {
   state.editing = { collection: "deals", id: item.id };
   const form = document.getElementById("form-deal");
   form.type.value = item.type || "確定";
   form.category.value = item.category || "売掛";
   form.owner.value = item.owner || "";
+  form.receiptNumber.value = item.receiptNumber || "";
   form.clientName.value = item.clientName || "";
   form.product.value = item.product || "";
   form.salesAmount.value = item.salesAmount || "";
@@ -892,29 +910,60 @@ function editDeal(item) {
   form.competition.value = item.competition || "";
   form.invoiced.checked = !!item.invoiced;
   form.memo.value = item.memo || "";
+  updateDealFormVisibility();
   openModal("modal-deal");
 }
 document.getElementById("form-deal").addEventListener("submit", (e) => {
   e.preventDefault();
   const f = e.target;
+  const category = f.category.value;
+  const isReceivable = category === "売掛";
   const salesAmount = Number(f.salesAmount.value) || 0;
-  const probability = Number(f.probability.value) || 0;
-  const payload = {
-    type: f.type.value,
-    category: f.category.value,
-    owner: f.owner.value,
-    clientName: f.clientName.value,
-    product: f.product.value,
-    salesAmount,
-    grossProfit: Number(f.grossProfit.value) || 0,
-    probability,
-    weightedAmount: Math.round((salesAmount * probability) / 100),
-    stage: f.stage.value,
-    expectedDate: f.expectedDate.value,
-    competition: f.competition.value,
-    invoiced: f.invoiced.checked,
-    memo: f.memo.value,
-  };
+  const grossProfit = Number(f.grossProfit.value) || 0;
+  let payload;
+  if (isReceivable) {
+    const receiptNumber = f.receiptNumber.value.trim();
+    payload = {
+      type: f.type.value,
+      category,
+      owner: f.owner.value,
+      receiptNumber,
+      clientName: "",
+      product: "",
+      salesAmount,
+      grossProfit,
+      probability: 0,
+      weightedAmount: 0,
+      stage: "",
+      expectedDate: "",
+      competition: "",
+      invoiced: !!receiptNumber,
+      memo: "",
+    };
+  } else {
+    if (!f.clientName.value.trim()) {
+      showToast("顧客名を入力してください");
+      return;
+    }
+    const probability = Number(f.probability.value) || 0;
+    payload = {
+      type: f.type.value,
+      category,
+      owner: f.owner.value,
+      receiptNumber: "",
+      clientName: f.clientName.value,
+      product: f.product.value,
+      salesAmount,
+      grossProfit,
+      probability,
+      weightedAmount: Math.round((salesAmount * probability) / 100),
+      stage: f.stage.value,
+      expectedDate: f.expectedDate.value,
+      competition: f.competition.value,
+      invoiced: f.invoiced.checked,
+      memo: f.memo.value,
+    };
+  }
   const p =
     state.editing.collection === "deals"
       ? updateDoc("deals", state.editing.id, payload)

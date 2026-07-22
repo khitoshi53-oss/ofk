@@ -311,16 +311,17 @@
       </select>
     </label>
     <label>担当者<select name="owner" required></select></label>
-    <label>顧客名<input type="text" name="clientName" required /></label>
-    <label>商品・サービス<input type="text" name="product" /></label>
+    <label class="deal-field-receivable">伝票番号<input type="text" name="receiptNumber" placeholder="伝票発行済の場合に入力" /></label>
+    <label class="deal-field-full">顧客名<input type="text" name="clientName" /></label>
+    <label class="deal-field-full">商品・サービス<input type="text" name="product" /></label>
     <label>売上金額(税別)<input type="number" name="salesAmount" min="0" step="1" /></label>
     <label>粗利益(税別)<input type="number" name="grossProfit" min="0" step="1" /></label>
-    <label>確度(%)<input type="number" name="probability" min="0" max="100" step="1" /></label>
-    <label>ステージ<input type="text" name="stage" placeholder="商談中・見積提出済 等" /></label>
-    <label>受注予定日<input type="date" name="expectedDate" /></label>
-    <label>競合状況<input type="text" name="competition" placeholder="競合なし 等" /></label>
-    <label class="checkbox-label"><input type="checkbox" name="invoiced" /> 伝票発行済（確定案件のみ）</label>
-    <label>備考<textarea name="memo" rows="2"></textarea></label>
+    <label class="deal-field-full">確度(%)<input type="number" name="probability" min="0" max="100" step="1" /></label>
+    <label class="deal-field-full">ステージ<input type="text" name="stage" placeholder="商談中・見積提出済 等" /></label>
+    <label class="deal-field-full">受注予定日<input type="date" name="expectedDate" /></label>
+    <label class="deal-field-full">競合状況<input type="text" name="competition" placeholder="競合なし 等" /></label>
+    <label class="checkbox-label deal-field-full"><input type="checkbox" name="invoiced" /> 伝票発行済（確定案件のみ）</label>
+    <label class="deal-field-full">備考<textarea name="memo" rows="2"></textarea></label>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
       <button type="submit" class="btn-primary">保存</button>
