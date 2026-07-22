@@ -1304,22 +1304,32 @@ function renderDashboard() {
     kpiGrid.appendChild(div);
   });
 
-  // sales chart: this year (from deals, by expectedDate month, 確定 only) vs last year (settings)
-  const thisYearMonthly = Array(12).fill(0);
+  // 月別 売上・粗利（今年）: 確定案件（expectedDateの月）から自動集計し、
+  // Excelで確定済みの実績月（thisYearMonthly*Override）があればそちらを優先する
+  const thisYearMonthlySales = Array(12).fill(0);
+  const thisYearMonthlyProfit = Array(12).fill(0);
   state.data.deals
     .filter((d) => d.type === "確定" && d.expectedDate)
     .forEach((d) => {
       const m = new Date(d.expectedDate).getMonth();
-      if (!isNaN(m)) thisYearMonthly[m] += Number(d.salesAmount) || 0;
+      if (!isNaN(m)) {
+        thisYearMonthlySales[m] += Number(d.salesAmount) || 0;
+        thisYearMonthlyProfit[m] += Number(d.grossProfit) || 0;
+      }
     });
-  const lastYear = settings.lastYearMonthlySales || Array(12).fill(0);
-  const maxVal = Math.max(1, ...thisYearMonthly, ...lastYear);
+  const salesOverride = settings.thisYearMonthlySalesOverride || Array(12).fill(null);
+  const profitOverride = settings.thisYearMonthlyProfitOverride || Array(12).fill(null);
+  for (let m = 0; m < 12; m++) {
+    if (salesOverride[m] !== null && salesOverride[m] !== undefined) thisYearMonthlySales[m] = Number(salesOverride[m]) || 0;
+    if (profitOverride[m] !== null && profitOverride[m] !== undefined) thisYearMonthlyProfit[m] = Number(profitOverride[m]) || 0;
+  }
+  const maxVal = Math.max(1, ...thisYearMonthlySales, ...thisYearMonthlyProfit);
   const chartEl = document.getElementById("sales-chart");
   chartEl.innerHTML = "";
   chartEl.parentElement.querySelectorAll(".chart-legend").forEach((el) => el.remove());
   const legend = document.createElement("div");
   legend.className = "chart-legend";
-  legend.innerHTML = '<span class="legend-this">今年</span><span class="legend-last">前年</span>';
+  legend.innerHTML = '<span class="legend-sales">売上</span><span class="legend-profit">粗利</span>';
   chartEl.parentElement.insertBefore(legend, chartEl);
   for (let m = 0; m < 12; m++) {
     const group = document.createElement("div");
@@ -1327,13 +1337,13 @@ function renderDashboard() {
     const bars = document.createElement("div");
     bars.className = "bars";
     const b1 = document.createElement("div");
-    b1.className = "bar this-year";
-    b1.style.height = Math.round((thisYearMonthly[m] / maxVal) * 100) + "%";
-    b1.title = `今年 ${m + 1}月: ${yen(thisYearMonthly[m])}`;
+    b1.className = "bar bar-sales";
+    b1.style.height = Math.round((thisYearMonthlySales[m] / maxVal) * 100) + "%";
+    b1.title = `売上 ${m + 1}月: ${yen(thisYearMonthlySales[m])}`;
     const b2 = document.createElement("div");
-    b2.className = "bar last-year";
-    b2.style.height = Math.round((lastYear[m] / maxVal) * 100) + "%";
-    b2.title = `前年 ${m + 1}月: ${yen(lastYear[m])}`;
+    b2.className = "bar bar-profit";
+    b2.style.height = Math.round((thisYearMonthlyProfit[m] / maxVal) * 100) + "%";
+    b2.title = `粗利 ${m + 1}月: ${yen(thisYearMonthlyProfit[m])}`;
     bars.appendChild(b1);
     bars.appendChild(b2);
     const label = document.createElement("div");
@@ -1515,11 +1525,17 @@ function setupFilters() {
   document.getElementById("report-month-filter").value = currentMonthKey();
 }
 
-// 前年売上.xlsx（2025年度）の実績値。月別売上チャートの「前年」系列に使用。
+// 前年売上.xlsx（2025年度）の実績値。以前の「前年」系列用（現在は月別グラフでは未使用、データは保持）。
 const LAST_YEAR_SALES_FROM_EXCEL = [
   2953724, 1620795, 3970677, 6502733, 2885659, 3100523, 10960258, 5606135, 5034361, 5962747, 5918959, 5378436,
 ];
 const LAST_YEAR_SALES_SOURCE_TAG = "excel_2025_2026-07-23";
+
+// 前年売上.xlsx（今年度上半期）の実績値。月別売上粗利チャートの「今年」系列に使用。
+// 1〜6月はExcelの実績値、7〜12月は未確定のため null（＝確定案件から自動計算した値を使用）。
+const THIS_YEAR_SALES_OVERRIDE_FROM_EXCEL = [4218539, 5321085, 8237228, 8991159, 3014109, 4103627, null, null, null, null, null, null];
+const THIS_YEAR_PROFIT_OVERRIDE_FROM_EXCEL = [959281, 1282081, 3171037, 4500619, 1295504, 1780663, null, null, null, null, null, null];
+const THIS_YEAR_SALES_PROFIT_SOURCE_TAG = "excel_thisyear_2026H1_2026-07-23";
 
 /* ---------------- Bootstrap ---------------- */
 function loadSettings() {
@@ -1543,6 +1559,20 @@ function loadSettings() {
             .catch((err) => console.error("lastYear migration error", err));
           state.data.settings = { ...state.data.settings, ...migrated };
         }
+        // 今年度売上・粗利額（Excel）を月別売上粗利チャートに反映（1回限りの移行）
+        if (state.data.settings.thisYearSalesProfitSource !== THIS_YEAR_SALES_PROFIT_SOURCE_TAG) {
+          const migrated2 = {
+            thisYearMonthlySalesOverride: THIS_YEAR_SALES_OVERRIDE_FROM_EXCEL,
+            thisYearMonthlyProfitOverride: THIS_YEAR_PROFIT_OVERRIDE_FROM_EXCEL,
+            thisYearSalesProfitSource: THIS_YEAR_SALES_PROFIT_SOURCE_TAG,
+          };
+          state.db
+            .collection("settings")
+            .doc("main")
+            .set(migrated2, { merge: true })
+            .catch((err) => console.error("thisYear migration error", err));
+          state.data.settings = { ...state.data.settings, ...migrated2 };
+        }
       } else {
         // seed default settings on first run
         const defaults = {
@@ -1551,6 +1581,9 @@ function loadSettings() {
           monthlyProfitTargetByMonth: [3000000, 3000000, 3000000, 3000000, 3000000, 3000000, 3000000, 0, 0, 0, 0, 0],
           lastYearMonthlySales: LAST_YEAR_SALES_FROM_EXCEL,
           lastYearSalesSource: LAST_YEAR_SALES_SOURCE_TAG,
+          thisYearMonthlySalesOverride: THIS_YEAR_SALES_OVERRIDE_FROM_EXCEL,
+          thisYearMonthlyProfitOverride: THIS_YEAR_PROFIT_OVERRIDE_FROM_EXCEL,
+          thisYearSalesProfitSource: THIS_YEAR_SALES_PROFIT_SOURCE_TAG,
           businessDaysOverride: {},
           manualSalesAdjustment: 0,
           manualProfitAdjustment: 0,

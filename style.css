@@ -138,13 +138,13 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .bar-chart .bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 2px; }
 .bar-chart .bars { display: flex; align-items: flex-end; gap: 2px; height: 100%; width: 100%; justify-content: center; }
 .bar-chart .bar { width: 7px; border-radius: 3px 3px 0 0; }
-.bar-chart .bar.this-year { background: var(--primary); }
-.bar-chart .bar.last-year { background: #c7d2e8; }
+.bar-chart .bar.bar-sales { background: var(--primary); }
+.bar-chart .bar.bar-profit { background: var(--success); }
 .bar-chart .bar-label { font-size: 9px; color: var(--muted); margin-top: 4px; }
 .chart-legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
 .chart-legend span::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; }
-.legend-this::before { background: var(--primary); }
-.legend-last::before { background: #c7d2e8; }
+.legend-sales::before { background: var(--primary); }
+.legend-profit::before { background: var(--success); }
 
 /* --- Calendar (week grid: reps x days) --- */
 .calendar-card {
