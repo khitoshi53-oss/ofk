@@ -1254,10 +1254,25 @@ function getAutoRepReceivableTotals() {
     });
   return totals;
 }
+// リース契約（確定・伝票発行済）案件を担当者ごとに自動集計する
+function getAutoRepLeaseTotals() {
+  const totals = {};
+  state.data.deals
+    .filter((d) => d.category === "リース契約" && d.type === "確定" && d.invoiced)
+    .forEach((d) => {
+      const rep = d.owner || "";
+      if (!rep) return;
+      totals[rep] = totals[rep] || { sales: 0, profit: 0 };
+      totals[rep].sales += Number(d.salesAmount) || 0;
+      totals[rep].profit += Number(d.grossProfit) || 0;
+    });
+  return totals;
+}
 function openRepSalesModal() {
   const settings = state.data.settings || {};
   const repSales = settings.repSales || {};
   const autoTotals = getAutoRepReceivableTotals();
+  const autoLeaseTotals = getAutoRepLeaseTotals();
   const isAdmin = state.currentUser === ADMIN_REP;
   const body = document.getElementById("rep-sales-body");
 
@@ -1266,14 +1281,17 @@ function openRepSalesModal() {
     const manualSales = Number(entry.sales) || 0;
     const manualProfit = Number(entry.profit) || 0;
     const auto = autoTotals[rep] || { sales: 0, profit: 0 };
-    const totalSales = auto.sales + manualSales;
-    const totalProfit = auto.profit + manualProfit;
+    const autoLease = autoLeaseTotals[rep] || { sales: 0, profit: 0 };
+    const totalSales = auto.sales + autoLease.sales + manualSales;
+    const totalProfit = auto.profit + autoLease.profit + manualProfit;
     if (isAdmin) {
       return `
         <tr>
           <td>${escapeHtml(rep)}</td>
           <td>${yen(auto.sales)}</td>
           <td>${yen(auto.profit)}</td>
+          <td>${yen(autoLease.sales)}</td>
+          <td>${yen(autoLease.profit)}</td>
           <td><input type="number" min="0" step="1" class="rep-sales-input" data-rep="${escapeHtml(rep)}" data-field="sales" value="${manualSales}" /></td>
           <td><input type="number" min="0" step="1" class="rep-sales-input" data-rep="${escapeHtml(rep)}" data-field="profit" value="${manualProfit}" /></td>
           <td>${yen(totalSales)}</td>
@@ -1285,6 +1303,8 @@ function openRepSalesModal() {
         <td>${escapeHtml(rep)}</td>
         <td>${yen(auto.sales)}</td>
         <td>${yen(auto.profit)}</td>
+        <td>${yen(autoLease.sales)}</td>
+        <td>${yen(autoLease.profit)}</td>
         <td>${yen(manualSales)}</td>
         <td>${yen(manualProfit)}</td>
         <td>${yen(totalSales)}</td>
@@ -1295,11 +1315,11 @@ function openRepSalesModal() {
   body.innerHTML = `
     <div class="rep-sales-table-wrap">
     <table class="mini-table rep-sales-table">
-      <tr><th>担当者</th><th>売掛確定<br>売上</th><th>売掛確定<br>粗利</th><th>手動入力<br>売上</th><th>手動入力<br>粗利</th><th>合計<br>売上</th><th>合計<br>粗利</th></tr>
+      <tr><th>担当者</th><th>売掛確定<br>売上</th><th>売掛確定<br>粗利</th><th>リース契約確定<br>売上</th><th>リース契約確定<br>粗利</th><th>手動入力<br>売上</th><th>手動入力<br>粗利</th><th>合計<br>売上</th><th>合計<br>粗利</th></tr>
       ${rows}
     </table>
     </div>
-    <p class="muted small">「売掛確定」は種別が確定かつ伝票発行済の売掛案件から自動集計しています。「手動入力」はそれ以外の調整額（リース契約分等）です。${isAdmin ? "手動入力欄を変更して「保存」を押してください（管理者のみ編集できます）。" : "手動入力欄の変更は管理者（川﨑）のみ行えます。"}</p>`;
+    <p class="muted small">「売掛確定」「リース契約確定」は種別が確定かつ伝票発行済の案件から自動集計しています。「手動入力」はそれ以外の調整額です。${isAdmin ? "手動入力欄を変更して「保存」を押してください（管理者のみ編集できます）。" : "手動入力欄の変更は管理者（川﨑）のみ行えます。"}</p>`;
 
   document.getElementById("rep-sales-save-btn").classList.toggle("hidden", !isAdmin);
   openModal("modal-rep-sales");

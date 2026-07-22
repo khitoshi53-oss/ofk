@@ -124,7 +124,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 
 /* --- 社員別 売上・粗利モーダル --- */
 .rep-sales-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; }
-.rep-sales-table { min-width: 560px; }
+.rep-sales-table { min-width: 760px; }
 .rep-sales-table input[type="number"] {
   width: 100%; min-width: 64px; padding: 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; text-align: right;
 }
