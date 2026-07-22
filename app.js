@@ -1362,6 +1362,7 @@ function renderDashboard() {
     manualSalesAdjustment: 0,
     manualProfitAdjustment: 0,
     repSales: {},
+    dashboardMarquee: "",
   };
   const now = new Date();
   const monthIdx = now.getMonth(); // 0-11
@@ -1509,7 +1510,69 @@ function renderDashboard() {
       <tr><td>有給休暇申請</td><td>${pendingLeave.length}件</td><td>-</td></tr>
       <tr><td>経費精算申請</td><td>${pendingExpense.length}件</td><td>${yen(pendingExpenseAmount)}</td></tr>`;
   }
+
+  renderMarquee(settings);
 }
+
+/* ---------------- ダッシュボード お知らせ（スクロールテキスト） ----------------
+ * 編集できるのは管理者（川﨑）のみ。 */
+function renderMarquee(settings) {
+  const text = (settings.dashboardMarquee || "").trim();
+  const wrap = document.getElementById("dashboard-marquee");
+  const track = document.getElementById("dashboard-marquee-track");
+  const spanA = document.getElementById("dashboard-marquee-text-a");
+  const spanB = document.getElementById("dashboard-marquee-text-b");
+  const isAdmin = state.currentUser === ADMIN_REP;
+
+  document.getElementById("marquee-edit-btn").classList.toggle("hidden", !isAdmin);
+
+  if (!text) {
+    wrap.classList.add("hidden");
+    track.classList.remove("is-animating");
+    spanA.textContent = "";
+    spanB.textContent = "";
+    return;
+  }
+  wrap.classList.remove("hidden");
+  spanA.textContent = text;
+  spanB.textContent = text;
+  // 文字量に応じてスクロール時間を調整（速すぎ/遅すぎを防止）
+  const duration = Math.max(8, Math.min(40, text.length * 0.35));
+  track.style.animationDuration = duration + "s";
+  track.classList.add("is-animating");
+}
+
+function fillMarqueeForm() {
+  const settings = state.data.settings || {};
+  document.getElementById("form-marquee").marqueeText.value = settings.dashboardMarquee || "";
+}
+document.getElementById("marquee-edit-btn").addEventListener("click", () => {
+  if (state.currentUser !== ADMIN_REP) {
+    showToast("権限がありません（管理者のみ編集できます）");
+    return;
+  }
+  fillMarqueeForm();
+  openModal("modal-marquee");
+});
+document.getElementById("form-marquee").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (state.currentUser !== ADMIN_REP) {
+    showToast("権限がありません（管理者のみ編集できます）");
+    return;
+  }
+  const dashboardMarquee = e.target.marqueeText.value.trim();
+  state.db
+    .collection("settings")
+    .doc("main")
+    .set({ dashboardMarquee }, { merge: true })
+    .then(() => {
+      state.data.settings = { ...(state.data.settings || {}), dashboardMarquee };
+      showToast("お知らせを保存しました");
+      closeAllModals();
+      renderDashboard();
+    })
+    .catch((err) => showToast("保存エラー: " + err.message));
+});
 
 function businessDaysInMonthSoFar() {
   const now = new Date();
@@ -1694,6 +1757,7 @@ function loadSettings() {
           manualSalesAdjustment: 0,
           manualProfitAdjustment: 0,
           repSales: {},
+          dashboardMarquee: "",
         };
         state.db.collection("settings").doc("main").set(defaults);
         state.data.settings = defaults;

@@ -39,6 +39,15 @@
     <section id="view-dashboard" class="view">
       <div class="view-header">
         <h2>ダッシュボード</h2>
+        <div class="dashboard-marquee-wrap" id="dashboard-marquee-wrap">
+          <div class="dashboard-marquee" id="dashboard-marquee">
+            <div class="dashboard-marquee-track" id="dashboard-marquee-track">
+              <span class="dashboard-marquee-item" id="dashboard-marquee-text-a"></span>
+              <span class="dashboard-marquee-item" id="dashboard-marquee-text-b" aria-hidden="true"></span>
+            </div>
+          </div>
+          <button type="button" class="marquee-edit-btn hidden" id="marquee-edit-btn" title="お知らせ文を編集">✎</button>
+        </div>
         <button class="fab-inline" data-open-modal="modal-target">⚙ 目標を編集</button>
       </div>
       <div class="kpi-grid" id="kpi-grid"></div>
@@ -274,6 +283,19 @@
     <p class="muted small">確定/見込とは別枠の少額売掛金など（売上・粗利の実績に加算されます）</p>
     <label>売上への加算額（少額売掛金等）<input type="number" name="manualSalesAdjustment" min="0" step="1" /></label>
     <label>粗利への加算額<input type="number" name="manualProfitAdjustment" min="0" step="1" /></label>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- モーダル: ダッシュボードお知らせ（スクロールテキスト） -->
+<div class="modal-backdrop hidden" id="modal-marquee">
+  <form class="modal-card" id="form-marquee">
+    <h3>お知らせ（スクロールテキスト）</h3>
+    <p class="muted small">ダッシュボード上部に流れる文字です。編集できるのは管理者（川﨑）のみです。</p>
+    <label>表示するテキスト<textarea name="marqueeText" rows="3" placeholder="例: 7月度目標達成まであと◯◯円！"></textarea></label>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
       <button type="submit" class="btn-primary">保存</button>
