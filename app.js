@@ -19,6 +19,7 @@ const state = {
     dailyReports: [],
     deals: [],
     clients: [],
+    requests: [],
     settings: null,
   },
 };
@@ -122,6 +123,21 @@ function setupModals() {
       if (btn.dataset.openModal === "modal-target") {
         fillTargetForm();
       }
+      if (btn.dataset.openModal === "modal-leave") {
+        document.getElementById("leave-modal-title").textContent = "有給休暇申請";
+        document.getElementById("leave-delete-btn").classList.add("hidden");
+        const form = document.getElementById("form-leave");
+        form.startDate.value = todayStr();
+        form.endDate.value = todayStr();
+        form.status.value = "承認待ち";
+      }
+      if (btn.dataset.openModal === "modal-expense") {
+        document.getElementById("expense-modal-title").textContent = "経費精算申請";
+        document.getElementById("expense-delete-btn").classList.add("hidden");
+        const form = document.getElementById("form-expense");
+        form.expenseDate.value = todayStr();
+        form.status.value = "承認待ち";
+      }
     });
   });
   document.querySelectorAll("[data-close-modal]").forEach((btn) => {
@@ -146,6 +162,8 @@ function closeAllModals() {
   document.getElementById("report-delete-btn").classList.add("hidden");
   document.getElementById("report-add-entry-btn").classList.remove("hidden");
   document.getElementById("report-entries").innerHTML = "";
+  document.getElementById("leave-delete-btn").classList.add("hidden");
+  document.getElementById("expense-delete-btn").classList.add("hidden");
   state.editing = { collection: null, id: null };
 }
 
@@ -187,7 +205,7 @@ document.getElementById("form-schedule").rep.addEventListener("change", renderCo
 
 function populateRepSelects() {
   const selects = document.querySelectorAll(
-    'select[name="rep"], select[name="assignee"], select[name="owner"], #schedule-rep-filter, #todo-rep-filter, #report-rep-filter, #deal-rep-filter'
+    'select[name="rep"], select[name="assignee"], select[name="owner"], #schedule-rep-filter, #todo-rep-filter, #report-rep-filter, #deal-rep-filter, #request-rep-filter'
   );
   selects.forEach((sel) => {
     const keepFirst = sel.querySelector('option[value=""]');
@@ -947,6 +965,184 @@ document.getElementById("form-client").addEventListener("submit", (e) => {
 document.getElementById("client-search").addEventListener("input", renderClients);
 
 /* ================================================================
+ * 各種申請（有給休暇申請・経費精算申請）
+ * ================================================================ */
+function requestSortDate(item) {
+  return item.startDate || item.expenseDate || "";
+}
+function renderRequests() {
+  const typeFilter = document.getElementById("request-type-filter").value;
+  const statusFilter = document.getElementById("request-status-filter").value;
+  const repFilter = document.getElementById("request-rep-filter").value;
+  let items = state.data.requests.slice();
+  if (typeFilter) items = items.filter((i) => i.reqType === typeFilter);
+  if (statusFilter) items = items.filter((i) => (i.status || "承認待ち") === statusFilter);
+  if (repFilter) items = items.filter((i) => i.rep === repFilter);
+  items.sort((a, b) => requestSortDate(b).localeCompare(requestSortDate(a)));
+
+  // summary
+  const summaryEl = document.getElementById("request-summary");
+  const pendingLeave = state.data.requests.filter(
+    (r) => r.reqType === "有給休暇" && (r.status || "承認待ち") === "承認待ち"
+  );
+  const pendingExpense = state.data.requests.filter(
+    (r) => r.reqType === "経費精算" && (r.status || "承認待ち") === "承認待ち"
+  );
+  const pendingExpenseAmount = pendingExpense.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  const approvedExpenseAmount = state.data.requests
+    .filter((r) => r.reqType === "経費精算" && r.status === "承認")
+    .reduce((s, r) => s + (Number(r.amount) || 0), 0);
+  summaryEl.innerHTML = `
+    <h3>申請サマリー</h3>
+    <table class="mini-table">
+      <tr><th>有給休暇 承認待ち</th><td>${pendingLeave.length}件</td></tr>
+      <tr><th>経費精算 承認待ち</th><td>${pendingExpense.length}件 ／ ${yen(pendingExpenseAmount)}</td></tr>
+      <tr><th>経費精算 承認済み合計</th><td>${yen(approvedExpenseAmount)}</td></tr>
+    </table>`;
+
+  const list = document.getElementById("request-list");
+  list.innerHTML = "";
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-msg">申請がありません</div>';
+    return;
+  }
+  items.forEach((item) => {
+    const el = document.createElement("div");
+    el.className = "list-item";
+    const status = item.status || "承認待ち";
+    if (item.reqType === "有給休暇") {
+      el.innerHTML = `
+        <div class="row1"><span>${escapeHtml(item.rep || "")} ／ 有給休暇申請</span><span class="tag status-${escapeHtml(status)}">${escapeHtml(status)}</span></div>
+        <div class="row2">期間: ${escapeHtml(item.startDate || "")} 〜 ${escapeHtml(item.endDate || "")} ／ 日数: ${escapeHtml(String(item.days ?? "-"))}</div>
+        ${item.reason ? `<div class="row2">理由: ${escapeHtml(item.reason)}</div>` : ""}
+        ${item.memo ? `<div class="row2">📝 ${escapeHtml(item.memo)}</div>` : ""}
+        <div class="item-actions">
+          <button data-edit="${item.id}">編集</button>
+          <button data-delete="${item.id}" class="danger">削除</button>
+        </div>`;
+    } else {
+      el.innerHTML = `
+        <div class="row1"><span>${escapeHtml(item.rep || "")} ／ 経費精算申請</span><span class="tag status-${escapeHtml(status)}">${escapeHtml(status)}</span></div>
+        <div class="row2">支出日: ${escapeHtml(item.expenseDate || "")} ／ 費目: ${escapeHtml(item.category || "-")}</div>
+        <div class="row2">金額: ${yen(item.amount)} ／ 領収書: ${item.hasReceipt ? "あり" : "なし"}</div>
+        ${item.content ? `<div class="row2">内容: ${escapeHtml(item.content)}</div>` : ""}
+        ${item.memo ? `<div class="row2">📝 ${escapeHtml(item.memo)}</div>` : ""}
+        <div class="item-actions">
+          <button data-edit="${item.id}">編集</button>
+          <button data-delete="${item.id}" class="danger">削除</button>
+        </div>`;
+    }
+    el.querySelector("[data-edit]").addEventListener("click", () => editRequest(item));
+    el.querySelector("[data-delete]").addEventListener("click", () => {
+      if (confirm("この申請を削除しますか？")) deleteDoc("requests", item.id);
+    });
+    list.appendChild(el);
+  });
+}
+function editRequest(item) {
+  state.editing = { collection: "requests", id: item.id };
+  if (item.reqType === "有給休暇") {
+    const form = document.getElementById("form-leave");
+    form.rep.value = item.rep || "";
+    form.startDate.value = item.startDate || "";
+    form.endDate.value = item.endDate || "";
+    form.days.value = item.days ?? "";
+    form.reason.value = item.reason || "";
+    form.status.value = item.status || "承認待ち";
+    form.memo.value = item.memo || "";
+    document.getElementById("leave-modal-title").textContent = "有給休暇申請を編集";
+    document.getElementById("leave-delete-btn").classList.remove("hidden");
+    openModal("modal-leave");
+  } else {
+    const form = document.getElementById("form-expense");
+    form.rep.value = item.rep || "";
+    form.expenseDate.value = item.expenseDate || "";
+    form.category.value = item.category || "";
+    form.content.value = item.content || "";
+    form.amount.value = item.amount || "";
+    form.hasReceipt.checked = !!item.hasReceipt;
+    form.status.value = item.status || "承認待ち";
+    form.memo.value = item.memo || "";
+    document.getElementById("expense-modal-title").textContent = "経費精算申請を編集";
+    document.getElementById("expense-delete-btn").classList.remove("hidden");
+    openModal("modal-expense");
+  }
+}
+document.getElementById("form-leave").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const start = f.startDate.value;
+  const end = f.endDate.value;
+  let days = Number(f.days.value) || 0;
+  if (!days && start && end) {
+    const d1 = new Date(start + "T00:00:00");
+    const d2 = new Date(end + "T00:00:00");
+    days = Math.max(1, Math.round((d2 - d1) / 86400000) + 1);
+  }
+  const payload = {
+    reqType: "有給休暇",
+    rep: f.rep.value,
+    startDate: start,
+    endDate: end,
+    days: days || 1,
+    reason: f.reason.value,
+    status: f.status.value,
+    memo: f.memo.value,
+  };
+  const p =
+    state.editing.collection === "requests" && state.editing.id
+      ? updateDoc("requests", state.editing.id, payload)
+      : addDoc("requests", payload);
+  p.then(() => {
+    showToast("有給休暇申請を保存しました");
+    closeAllModals();
+  }).catch((err) => showToast("保存エラー: " + err.message));
+});
+document.getElementById("leave-delete-btn").addEventListener("click", () => {
+  if (state.editing.collection !== "requests" || !state.editing.id) return;
+  if (!confirm("この申請を削除しますか？")) return;
+  deleteDoc("requests", state.editing.id)
+    .then(() => {
+      showToast("申請を削除しました");
+      closeAllModals();
+    })
+    .catch((err) => showToast("削除エラー: " + err.message));
+});
+document.getElementById("form-expense").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const payload = {
+    reqType: "経費精算",
+    rep: f.rep.value,
+    expenseDate: f.expenseDate.value,
+    category: f.category.value,
+    content: f.content.value,
+    amount: Number(f.amount.value) || 0,
+    hasReceipt: f.hasReceipt.checked,
+    status: f.status.value,
+    memo: f.memo.value,
+  };
+  const p =
+    state.editing.collection === "requests" && state.editing.id
+      ? updateDoc("requests", state.editing.id, payload)
+      : addDoc("requests", payload);
+  p.then(() => {
+    showToast("経費精算申請を保存しました");
+    closeAllModals();
+  }).catch((err) => showToast("保存エラー: " + err.message));
+});
+document.getElementById("expense-delete-btn").addEventListener("click", () => {
+  if (state.editing.collection !== "requests" || !state.editing.id) return;
+  if (!confirm("この申請を削除しますか？")) return;
+  deleteDoc("requests", state.editing.id)
+    .then(() => {
+      showToast("申請を削除しました");
+      closeAllModals();
+    })
+    .catch((err) => showToast("削除エラー: " + err.message));
+});
+
+/* ================================================================
  * ダッシュボード
  * ================================================================ */
 function renderDashboard() {
@@ -1074,6 +1270,22 @@ function renderDashboard() {
     rrows += `<tr><td>${escapeHtml(rep)}</td><td>${days}日</td><td>${businessDaysSoFar}日</td><td>${rate}% ${rate < 80 ? "⚠" : "✅"}</td></tr>`;
   });
   reportTable.innerHTML = rrows;
+
+  // 各種申請（承認待ち）サマリー
+  const requestTable = document.getElementById("dash-request-table");
+  if (requestTable) {
+    const pendingLeave = state.data.requests.filter(
+      (r) => r.reqType === "有給休暇" && (r.status || "承認待ち") === "承認待ち"
+    );
+    const pendingExpense = state.data.requests.filter(
+      (r) => r.reqType === "経費精算" && (r.status || "承認待ち") === "承認待ち"
+    );
+    const pendingExpenseAmount = pendingExpense.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    requestTable.innerHTML = `
+      <tr><th>種別</th><th>承認待ち件数</th><th>金額</th></tr>
+      <tr><td>有給休暇申請</td><td>${pendingLeave.length}件</td><td>-</td></tr>
+      <tr><td>経費精算申請</td><td>${pendingExpense.length}件</td><td>${yen(pendingExpenseAmount)}</td></tr>`;
+  }
 }
 
 function businessDaysInMonthSoFar() {
@@ -1189,6 +1401,9 @@ function setupFilters() {
   ["deal-type-filter", "deal-rep-filter"].forEach((id) =>
     document.getElementById(id).addEventListener("change", renderDeals)
   );
+  ["request-type-filter", "request-status-filter", "request-rep-filter"].forEach((id) =>
+    document.getElementById(id).addEventListener("change", renderRequests)
+  );
   document.getElementById("report-month-filter").value = currentMonthKey();
 }
 
@@ -1248,6 +1463,11 @@ function startListeners() {
     state.data.clients = items;
     renderClients();
     populateKnownClientsDatalist();
+  });
+  listen("requests", (items) => {
+    state.data.requests = items;
+    renderRequests();
+    renderDashboard();
   });
 }
 

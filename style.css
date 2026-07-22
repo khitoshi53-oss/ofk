@@ -236,6 +236,13 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .tag.status-未着手 { background: #fdeceb; color: var(--danger); }
 .tag.type-確定 { background: #e6f7ea; color: var(--success); }
 .tag.type-見込 { background: #fff4e0; color: var(--warning); }
+.tag.status-承認待ち { background: #fff4e0; color: var(--warning); }
+.tag.status-承認 { background: #e6f7ea; color: var(--success); }
+.tag.status-却下 { background: #fdeceb; color: var(--danger); }
+
+/* --- 各種申請 --- */
+.request-add-buttons { display: flex; gap: 8px; margin-bottom: 14px; }
+.request-add-buttons .fab-inline { flex: 1; }
 .list-item .item-actions { display: flex; gap: 8px; margin-top: 6px; }
 .item-actions button {
   border: none; background: none; color: var(--primary); font-size: 12px; cursor: pointer; padding: 0;

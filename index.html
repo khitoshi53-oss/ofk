@@ -54,6 +54,10 @@
         <h3>日報提出状況（今月）</h3>
         <table class="mini-table" id="dash-report-table"></table>
       </div>
+      <div class="card">
+        <h3>各種申請（承認待ち）</h3>
+        <table class="mini-table" id="dash-request-table"></table>
+      </div>
     </section>
 
     <!-- 予定表 -->
@@ -135,6 +139,33 @@
       <input type="search" id="client-search" placeholder="会社名・フリガナで検索" class="search-box" />
       <div id="client-list" class="list"></div>
     </section>
+
+    <!-- 各種申請 -->
+    <section id="view-requests" class="view hidden">
+      <div class="view-header">
+        <h2>各種申請</h2>
+      </div>
+      <div class="request-add-buttons">
+        <button class="fab-inline" data-open-modal="modal-leave">＋ 有給休暇申請</button>
+        <button class="fab-inline" data-open-modal="modal-expense">＋ 経費精算申請</button>
+      </div>
+      <div class="filter-row">
+        <select id="request-type-filter">
+          <option value="">種別すべて</option>
+          <option value="有給休暇">有給休暇申請</option>
+          <option value="経費精算">経費精算申請</option>
+        </select>
+        <select id="request-status-filter">
+          <option value="">ステータスすべて</option>
+          <option value="承認待ち">承認待ち</option>
+          <option value="承認">承認</option>
+          <option value="却下">却下</option>
+        </select>
+        <select id="request-rep-filter"><option value="">全担当者</option></select>
+      </div>
+      <div class="card" id="request-summary"></div>
+      <div id="request-list" class="list"></div>
+    </section>
   </main>
 
   <nav class="bottom-nav">
@@ -144,6 +175,7 @@
     <button class="nav-btn" data-view="view-reports"><span>📝</span>日報</button>
     <button class="nav-btn" data-view="view-deals"><span>🎯</span>確定/見込</button>
     <button class="nav-btn" data-view="view-clients"><span>🏢</span>新規取引先</button>
+    <button class="nav-btn" data-view="view-requests"><span>📄</span>申請</button>
   </nav>
 </div>
 
@@ -288,6 +320,57 @@
     <label>備考<textarea name="memo" rows="2"></textarea></label>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- モーダル: 有給休暇申請 -->
+<div class="modal-backdrop hidden" id="modal-leave">
+  <form class="modal-card" id="form-leave">
+    <h3 id="leave-modal-title">有給休暇申請</h3>
+    <label>申請者<select name="rep" required></select></label>
+    <label>開始日<input type="date" name="startDate" required /></label>
+    <label>終了日<input type="date" name="endDate" required /></label>
+    <label>日数<input type="number" name="days" min="0.5" step="0.5" placeholder="例: 1（未入力なら自動計算）" /></label>
+    <label>理由<input type="text" name="reason" placeholder="私用・体調不良 等" /></label>
+    <label>ステータス
+      <select name="status">
+        <option value="承認待ち">承認待ち</option>
+        <option value="承認">承認</option>
+        <option value="却下">却下</option>
+      </select>
+    </label>
+    <label>備考<textarea name="memo" rows="2"></textarea></label>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="button" id="leave-delete-btn" class="btn-secondary btn-danger hidden">削除</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- モーダル: 経費精算申請 -->
+<div class="modal-backdrop hidden" id="modal-expense">
+  <form class="modal-card" id="form-expense">
+    <h3 id="expense-modal-title">経費精算申請</h3>
+    <label>申請者<select name="rep" required></select></label>
+    <label>支出日<input type="date" name="expenseDate" required /></label>
+    <label>費目<input type="text" name="category" placeholder="交通費・接待交際費・消耗品費 等" /></label>
+    <label>内容<input type="text" name="content" placeholder="用途・訪問先 等" /></label>
+    <label>金額（円）<input type="number" name="amount" min="0" step="1" required /></label>
+    <label class="checkbox-label"><input type="checkbox" name="hasReceipt" /> 領収書あり</label>
+    <label>ステータス
+      <select name="status">
+        <option value="承認待ち">承認待ち</option>
+        <option value="承認">承認</option>
+        <option value="却下">却下</option>
+      </select>
+    </label>
+    <label>備考<textarea name="memo" rows="2"></textarea></label>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="button" id="expense-delete-btn" class="btn-secondary btn-danger hidden">削除</button>
       <button type="submit" class="btn-primary">保存</button>
     </div>
   </form>
