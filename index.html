@@ -102,8 +102,12 @@
     <section id="view-reports" class="view hidden">
       <div class="view-header">
         <h2>日報</h2>
-        <button class="fab-inline" data-open-modal="modal-report">＋ 日報をまとめて入力</button>
+        <div class="view-header-actions">
+          <input type="text" id="report-client-history-search" list="known-clients" class="client-history-search" placeholder="🔍 顧客名で履歴検索" autocomplete="off" />
+          <button class="fab-inline" data-open-modal="modal-report">＋ 日報をまとめて入力</button>
+        </div>
       </div>
+      <div class="card hidden" id="report-client-history-card"></div>
       <div class="filter-row">
         <select id="report-rep-filter"></select>
         <input type="month" id="report-month-filter" />
@@ -261,8 +265,6 @@
     <p class="muted small" id="target-month-label"></p>
     <label>売上目標（伝票発行済）<input type="number" name="salesTarget" min="0" step="1" /></label>
     <label>粗利目標（伝票発行済）<input type="number" name="profitTarget" min="0" step="1" /></label>
-    <label>確定（伝票未発行）売上目標<input type="number" name="dealConfirmedTarget" min="0" step="1" /></label>
-    <label>見込売上目標<input type="number" name="dealProspectTarget" min="0" step="1" /></label>
     <label>日報提出状況の営業日数（今月）<input type="number" name="businessDays" min="0" step="1" /></label>
     <p class="muted small">確定/見込とは別枠の少額売掛金など（売上・粗利の実績に加算されます）</p>
     <label>売上への加算額（少額売掛金等）<input type="number" name="manualSalesAdjustment" min="0" step="1" /></label>
@@ -272,6 +274,18 @@
       <button type="submit" class="btn-primary">保存</button>
     </div>
   </form>
+</div>
+
+<!-- モーダル: 社員別 売上・粗利 -->
+<div class="modal-backdrop hidden" id="modal-rep-sales">
+  <div class="modal-card" id="rep-sales-card">
+    <h3>社員別 売上・粗利（伝票発行済）</h3>
+    <div id="rep-sales-body"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>閉じる</button>
+      <button type="button" id="rep-sales-save-btn" class="btn-primary hidden">保存</button>
+    </div>
+  </div>
 </div>
 
 <!-- モーダル: 案件(確定/見込)追加 -->

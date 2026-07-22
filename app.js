@@ -4,6 +4,8 @@
  */
 
 const REPS = ["新谷 壮央", "白木 寿樹", "川﨑 人志"];
+// 社員別 売上・粗利の金額を入力・変更できるのは管理者（川﨑）のみ
+const ADMIN_REP = "川﨑 人志";
 
 const state = {
   currentUser: null,
@@ -648,6 +650,46 @@ function renderReports() {
     list.appendChild(el);
   });
 }
+
+/* --- 日報画面: 「＋ 日報をまとめて入力」の横にある顧客名検索で、その顧客の全履歴を表示 --- */
+function renderReportClientHistorySearch() {
+  const input = document.getElementById("report-client-history-search");
+  const card = document.getElementById("report-client-history-card");
+  if (!input || !card) return;
+  const q = input.value.trim();
+  if (!q) {
+    card.innerHTML = "";
+    card.classList.add("hidden");
+    return;
+  }
+  const matches = state.data.dailyReports
+    .filter((r) => (r.clientName || "").includes(q))
+    .slice()
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  if (matches.length === 0) {
+    card.innerHTML = `<h3>🕘 「${escapeHtml(q)}」の履歴</h3><div class="history-empty">この顧客の過去履歴はありません</div>`;
+    card.classList.remove("hidden");
+    return;
+  }
+  card.innerHTML =
+    `<h3>🕘 「${escapeHtml(q)}」の履歴（${matches.length}件）</h3>` +
+    matches
+      .map(
+        (m) => `
+      <div class="history-item">
+        <div class="history-item-row1"><span class="history-date">${escapeHtml(m.date || "")}</span><span class="history-rep">${escapeHtml(m.rep || "")}</span></div>
+        <div class="history-item-row2">${escapeHtml(m.content || m.workType || "-")}</div>
+        <div class="history-item-row3">請求対象: ${escapeHtml(m.billing || "-")} ／ 次回訪問: ${escapeHtml(m.nextVisit || "-")}</div>
+      </div>`
+      )
+      .join("");
+  card.classList.remove("hidden");
+}
+function setupReportClientHistorySearch() {
+  const input = document.getElementById("report-client-history-search");
+  if (!input) return;
+  input.addEventListener("input", renderReportClientHistorySearch);
+}
 /* --- 日報モーダル: 1日分の訪問・案件をまとめて入力するエントリー行 --- */
 let reportEntrySeq = 0;
 function createReportEntryEl(data) {
@@ -1143,6 +1185,69 @@ document.getElementById("expense-delete-btn").addEventListener("click", () => {
 });
 
 /* ================================================================
+ * 社員別 売上・粗利（管理者＝川﨑のみ入力・変更可）
+ * ================================================================ */
+function openRepSalesModal() {
+  const settings = state.data.settings || {};
+  const repSales = settings.repSales || {};
+  const isAdmin = state.currentUser === ADMIN_REP;
+  const body = document.getElementById("rep-sales-body");
+
+  const rows = REPS.map((rep) => {
+    const entry = repSales[rep] || {};
+    const sales = Number(entry.sales) || 0;
+    const profit = Number(entry.profit) || 0;
+    if (isAdmin) {
+      return `
+        <tr>
+          <td>${escapeHtml(rep)}</td>
+          <td><input type="number" min="0" step="1" class="rep-sales-input" data-rep="${escapeHtml(rep)}" data-field="sales" value="${sales}" /></td>
+          <td><input type="number" min="0" step="1" class="rep-sales-input" data-rep="${escapeHtml(rep)}" data-field="profit" value="${profit}" /></td>
+        </tr>`;
+    }
+    return `
+      <tr>
+        <td>${escapeHtml(rep)}</td>
+        <td>${yen(sales)}</td>
+        <td>${yen(profit)}</td>
+      </tr>`;
+  }).join("");
+
+  body.innerHTML = `
+    <table class="mini-table rep-sales-table">
+      <tr><th>担当者</th><th>売上</th><th>粗利</th></tr>
+      ${rows}
+    </table>
+    <p class="muted small">${isAdmin ? "値を入力して「保存」を押してください（管理者のみ編集できます）。" : "この金額の入力・変更は管理者（川﨑）のみ行えます。"}</p>`;
+
+  document.getElementById("rep-sales-save-btn").classList.toggle("hidden", !isAdmin);
+  openModal("modal-rep-sales");
+}
+document.getElementById("rep-sales-save-btn").addEventListener("click", () => {
+  if (state.currentUser !== ADMIN_REP) {
+    showToast("権限がありません（管理者のみ編集できます）");
+    return;
+  }
+  const repSales = {};
+  document.querySelectorAll("#rep-sales-body .rep-sales-input").forEach((input) => {
+    const rep = input.dataset.rep;
+    const field = input.dataset.field;
+    repSales[rep] = repSales[rep] || { sales: 0, profit: 0 };
+    repSales[rep][field] = Number(input.value) || 0;
+  });
+  state.db
+    .collection("settings")
+    .doc("main")
+    .set({ repSales }, { merge: true })
+    .then(() => {
+      state.data.settings = { ...(state.data.settings || {}), repSales };
+      showToast("社員別 売上・粗利を保存しました");
+      closeAllModals();
+    })
+    .catch((err) => showToast("保存エラー: " + err.message));
+});
+
+/* ================================================================
  * ダッシュボード
  * ================================================================ */
 function renderDashboard() {
@@ -1151,11 +1256,10 @@ function renderDashboard() {
     monthlySalesTarget: Array(12).fill(0),
     monthlyProfitTargetByMonth: Array(12).fill(0),
     lastYearMonthlySales: Array(12).fill(0),
-    dealConfirmedTarget: 0,
-    dealProspectTarget: 0,
     businessDaysOverride: {},
     manualSalesAdjustment: 0,
     manualProfitAdjustment: 0,
+    repSales: {},
   };
   const now = new Date();
   const monthIdx = now.getMonth(); // 0-11
@@ -1179,21 +1283,24 @@ function renderDashboard() {
 
   const salesTarget = (settings.monthlySalesTarget && settings.monthlySalesTarget[monthIdx]) || 0;
   const profitTarget = (settings.monthlyProfitTargetByMonth && settings.monthlyProfitTargetByMonth[monthIdx]) || settings.monthlyProfitTarget || 0;
-  const dealConfirmedTarget = settings.dealConfirmedTarget || 0;
-  const dealProspectTarget = settings.dealProspectTarget || 0;
 
   const kpiGrid = document.getElementById("kpi-grid");
   kpiGrid.innerHTML = "";
   const kpis = [
-    { label: "売上（伝票発行済）", value: yen(salesInvoiced), sub: `目標 ${yen(salesTarget)}${manualSalesAdjustment ? ` ／ 少額売掛金 +${yen(manualSalesAdjustment)}` : ""}`, cls: salesInvoiced >= salesTarget && salesTarget > 0 ? "good" : "" },
-    { label: "粗利（伝票発行済）", value: yen(profitInvoiced), sub: `目標 ${yen(profitTarget)}${manualProfitAdjustment ? ` ／ 少額売掛金 +${yen(manualProfitAdjustment)}` : ""}`, cls: profitInvoiced >= profitTarget && profitTarget > 0 ? "good" : "" },
-    { label: "確定（伝票未発行）売上", value: yen(salesConfirmedNoInvoice), sub: `目標 ${yen(dealConfirmedTarget)} ／ 粗利 ${yen(profitConfirmedNoInvoice)}`, cls: salesConfirmedNoInvoice >= dealConfirmedTarget && dealConfirmedTarget > 0 ? "good" : "" },
-    { label: "見込 売上", value: yen(salesProspect), sub: `目標 ${yen(dealProspectTarget)} ／ 粗利 ${yen(profitProspect)}`, cls: salesProspect >= dealProspectTarget && dealProspectTarget > 0 ? "good" : "" },
+    { label: "売上（伝票発行済）", value: yen(salesInvoiced), sub: `目標 ${yen(salesTarget)}${manualSalesAdjustment ? ` ／ 少額売掛金 +${yen(manualSalesAdjustment)}` : ""}`, cls: salesInvoiced >= salesTarget && salesTarget > 0 ? "good" : "", clickable: true },
+    { label: "粗利（伝票発行済）", value: yen(profitInvoiced), sub: `目標 ${yen(profitTarget)}${manualProfitAdjustment ? ` ／ 少額売掛金 +${yen(manualProfitAdjustment)}` : ""}`, cls: profitInvoiced >= profitTarget && profitTarget > 0 ? "good" : "", clickable: true },
+    { label: "確定（伝票未発行）売上", value: yen(salesConfirmedNoInvoice), sub: `粗利 ${yen(profitConfirmedNoInvoice)}`, cls: "" },
+    { label: "見込 売上", value: yen(salesProspect), sub: `粗利 ${yen(profitProspect)}`, cls: "" },
   ];
   kpis.forEach((k) => {
     const div = document.createElement("div");
-    div.className = "kpi-card " + k.cls;
-    div.innerHTML = `<div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div>`;
+    div.className = "kpi-card " + k.cls + (k.clickable ? " kpi-clickable" : "");
+    div.innerHTML =
+      `<div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div>` +
+      (k.clickable ? '<div class="kpi-tap-hint">👥 タップで社員別を表示</div>' : "");
+    if (k.clickable) {
+      div.addEventListener("click", () => openRepSalesModal());
+    }
     kpiGrid.appendChild(div);
   });
 
@@ -1313,8 +1420,6 @@ function fillTargetForm() {
     (settings.monthlyProfitTargetByMonth && settings.monthlyProfitTargetByMonth[monthIdx]) ||
     settings.monthlyProfitTarget ||
     0;
-  form.dealConfirmedTarget.value = settings.dealConfirmedTarget || 0;
-  form.dealProspectTarget.value = settings.dealProspectTarget || 0;
   form.manualSalesAdjustment.value = settings.manualSalesAdjustment || 0;
   form.manualProfitAdjustment.value = settings.manualProfitAdjustment || 0;
   const businessDaysOverride = settings.businessDaysOverride && settings.businessDaysOverride[monthKey];
@@ -1342,11 +1447,12 @@ document.getElementById("form-target").addEventListener("submit", (e) => {
   const payload = {
     monthlySalesTarget,
     monthlyProfitTargetByMonth,
-    dealConfirmedTarget: Number(f.dealConfirmedTarget.value) || 0,
-    dealProspectTarget: Number(f.dealProspectTarget.value) || 0,
     manualSalesAdjustment: Number(f.manualSalesAdjustment.value) || 0,
     manualProfitAdjustment: Number(f.manualProfitAdjustment.value) || 0,
     businessDaysOverride,
+    // 確定・見込の目標は廃止したため、既存データがあれば削除する
+    dealConfirmedTarget: firebase.firestore.FieldValue.delete(),
+    dealProspectTarget: firebase.firestore.FieldValue.delete(),
   };
 
   state.db
@@ -1355,6 +1461,8 @@ document.getElementById("form-target").addEventListener("submit", (e) => {
     .set(payload, { merge: true })
     .then(() => {
       state.data.settings = { ...settings, ...payload };
+      delete state.data.settings.dealConfirmedTarget;
+      delete state.data.settings.dealProspectTarget;
       showToast("目標・営業日数を保存しました");
       closeAllModals();
       renderDashboard();
@@ -1407,6 +1515,12 @@ function setupFilters() {
   document.getElementById("report-month-filter").value = currentMonthKey();
 }
 
+// 前年売上.xlsx（2025年度）の実績値。月別売上チャートの「前年」系列に使用。
+const LAST_YEAR_SALES_FROM_EXCEL = [
+  2953724, 1620795, 3970677, 6502733, 2885659, 3100523, 10960258, 5606135, 5034361, 5962747, 5918959, 5378436,
+];
+const LAST_YEAR_SALES_SOURCE_TAG = "excel_2025_2026-07-23";
+
 /* ---------------- Bootstrap ---------------- */
 function loadSettings() {
   state.db
@@ -1416,18 +1530,31 @@ function loadSettings() {
     .then((doc) => {
       if (doc.exists) {
         state.data.settings = doc.data();
+        // 前年売上.xlsx の実績値を反映（1回限りの移行。以降は手動編集を尊重する）
+        if (state.data.settings.lastYearSalesSource !== LAST_YEAR_SALES_SOURCE_TAG) {
+          const migrated = {
+            lastYearMonthlySales: LAST_YEAR_SALES_FROM_EXCEL,
+            lastYearSalesSource: LAST_YEAR_SALES_SOURCE_TAG,
+          };
+          state.db
+            .collection("settings")
+            .doc("main")
+            .set(migrated, { merge: true })
+            .catch((err) => console.error("lastYear migration error", err));
+          state.data.settings = { ...state.data.settings, ...migrated };
+        }
       } else {
         // seed default settings on first run
         const defaults = {
           monthlyProfitTarget: 2000000,
           monthlySalesTarget: [5000000, 5000000, 5000000, 5000000, 5000000, 5000000, 5000000, 0, 0, 0, 0, 0],
           monthlyProfitTargetByMonth: [3000000, 3000000, 3000000, 3000000, 3000000, 3000000, 3000000, 0, 0, 0, 0, 0],
-          lastYearMonthlySales: [4079512, 7617207, 8389019, 3148879, 3204342, 1932761, 2187642, 4761530, 3990195, 4098109, 2999198, 1905012],
-          dealConfirmedTarget: 0,
-          dealProspectTarget: 0,
+          lastYearMonthlySales: LAST_YEAR_SALES_FROM_EXCEL,
+          lastYearSalesSource: LAST_YEAR_SALES_SOURCE_TAG,
           businessDaysOverride: {},
           manualSalesAdjustment: 0,
           manualProfitAdjustment: 0,
+          repSales: {},
         };
         state.db.collection("settings").doc("main").set(defaults);
         state.data.settings = defaults;
@@ -1453,6 +1580,7 @@ function startListeners() {
     renderReports();
     renderDashboard();
     populateKnownClientsDatalist();
+    renderReportClientHistorySearch();
   });
   listen("deals", (items) => {
     state.data.deals = items;
@@ -1493,6 +1621,7 @@ function init() {
   setupNav();
   setupModals();
   setupFilters();
+  setupReportClientHistorySearch();
   populateRepSelects();
   loadHolidays();
 

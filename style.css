@@ -78,8 +78,13 @@ body {
 
 main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .view h2 { margin: 4px 0 16px; font-size: 20px; }
-.view-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.view-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
 .view-header h2 { margin: 0; }
+.view-header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.client-history-search {
+  padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: #fff; font-size: 13px; min-width: 150px;
+}
 
 .fab-inline {
   background: var(--primary); color: #fff; border: none;
@@ -113,6 +118,16 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .kpi-card .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
 .kpi-card.warn .kpi-value { color: var(--danger); }
 .kpi-card.good .kpi-value { color: var(--success); }
+.kpi-card.kpi-clickable { cursor: pointer; }
+.kpi-card.kpi-clickable:active { background: #f5f8ff; }
+.kpi-tap-hint { font-size: 10px; color: var(--primary-dark); margin-top: 5px; font-weight: 600; }
+
+/* --- 社員別 売上・粗利モーダル --- */
+.rep-sales-table input[type="number"] {
+  width: 100%; padding: 6px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px; text-align: right;
+}
+.rep-sales-table td, .rep-sales-table th { text-align: center; }
+.rep-sales-table td:first-child, .rep-sales-table th:first-child { text-align: left; }
 
 .mini-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .mini-table th, .mini-table td { padding: 6px 4px; border-bottom: 1px solid var(--border); text-align: center; }
@@ -217,6 +232,11 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .history-item + .history-item { border-top: 1px solid var(--border); padding-top: 5px; margin-top: 5px; }
 .history-item-row1 { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
 .history-item-row2 { font-size: 12.5px; color: var(--text); }
+.history-item-row3 { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+/* --- 日報画面: 顧客履歴検索カード --- */
+#report-client-history-card { max-height: 320px; overflow-y: auto; }
+#report-client-history-card h3 { margin: 0 0 8px; font-size: 14px; }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list-item {
