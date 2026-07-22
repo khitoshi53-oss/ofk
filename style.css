@@ -68,8 +68,8 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   padding-top: max(14px, env(safe-area-inset-top));
 }
-.topbar-title { font-weight: 700; font-size: 17px; }
-.topbar-user { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.topbar-title { font-weight: 700; font-size: 14px; line-height: 1.3; min-width: 0; flex: 1; margin-right: 8px; }
+.topbar-user { font-size: 13px; display: flex; align-items: center; gap: 8px; flex: none; }
 .link-btn {
   background: rgba(255,255,255,0.18);
   border: none; color: #fff;
@@ -161,6 +161,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .week-day-header.week-sat { color: #2f6fed; background: #eef4ff; }
 .week-day-header.week-sun { color: var(--danger); background: #fdeceb; }
 .week-day-header.week-today { outline: 2px solid var(--primary); outline-offset: -2px; }
+.week-holiday-name { font-size: 8.5px; line-height: 1.1; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .week-day-cell {
   background: #fafbfd; border-radius: 8px; padding: 4px; min-height: 64px;
   display: flex; flex-direction: column; gap: 3px; cursor: pointer;
@@ -206,6 +207,16 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .report-entry-remove {
   border: none; background: none; color: var(--danger); font-size: 12px; cursor: pointer; padding: 0;
 }
+.report-entry-history {
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; margin-top: -2px; display: flex; flex-direction: column; gap: 6px;
+  max-height: 160px; overflow-y: auto;
+}
+.history-title { font-size: 11px; font-weight: 700; color: var(--primary-dark); }
+.history-empty { font-size: 12px; color: var(--muted); }
+.history-item + .history-item { border-top: 1px solid var(--border); padding-top: 5px; margin-top: 5px; }
+.history-item-row1 { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.history-item-row2 { font-size: 12.5px; color: var(--text); }
 
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list-item {
@@ -222,7 +233,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 }
 .tag.status-完了 { background: #e6f7ea; color: var(--success); }
 .tag.status-進行中 { background: #fff4e0; color: var(--warning); }
-.tag.status-未着手 { background: #f1f1f1; color: var(--muted); }
+.tag.status-未着手 { background: #fdeceb; color: var(--danger); }
 .tag.type-確定 { background: #e6f7ea; color: var(--success); }
 .tag.type-見込 { background: #fff4e0; color: var(--warning); }
 .list-item .item-actions { display: flex; gap: 8px; margin-top: 6px; }

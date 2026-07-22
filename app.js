@@ -12,6 +12,7 @@ const state = {
   currentView: "view-dashboard",
   editing: { collection: null, id: null },
   calendar: { weekStart: startOfWeek(todayStr()) },
+  holidays: {}, // "YYYY-MM-DD" -> 祝日名
   data: {
     schedule: [],
     todos: [],
@@ -275,10 +276,35 @@ function todayStr() {
  * ================================================================ */
 const WEEKDAYS_JA = ["日", "月", "火", "水", "木", "金", "土"];
 
+// 予定表は「当日を一番左」にした7日間表示にするため、
+// 日曜始まりへの補正はせず、指定日をそのまま起点にする。
 function startOfWeek(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  d.setDate(d.getDate() - d.getDay());
-  return d;
+  return new Date(dateStr + "T00:00:00");
+}
+/* --- 日本の祝祭日（holidays-jp.github.io の公開APIを利用、オフライン用にキャッシュ） --- */
+const HOLIDAYS_CACHE_KEY = "eigyo_jp_holidays_v1";
+function loadHolidays() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(HOLIDAYS_CACHE_KEY) || "null");
+    if (cached && cached.data) {
+      state.holidays = cached.data;
+      renderSchedule();
+    }
+  } catch (e) {
+    /* ignore cache errors */
+  }
+  fetch("https://holidays-jp.github.io/api/v1/date.json")
+    .then((res) => res.json())
+    .then((data) => {
+      state.holidays = data || {};
+      try {
+        localStorage.setItem(HOLIDAYS_CACHE_KEY, JSON.stringify({ data: state.holidays, fetchedAt: Date.now() }));
+      } catch (e) {
+        /* ignore storage errors */
+      }
+      renderSchedule();
+    })
+    .catch((err) => console.warn("祝日データの取得に失敗しました", err));
 }
 function toDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -325,12 +351,17 @@ function renderSchedule() {
   headerRow.appendChild(Object.assign(document.createElement("div"), { className: "week-cell week-corner" }));
   days.forEach((d) => {
     const dateStr = toDateStr(d);
+    const holidayName = state.holidays && state.holidays[dateStr];
     const cell = document.createElement("div");
     cell.className = "week-cell week-day-header";
     if (d.getDay() === 6) cell.classList.add("week-sat");
-    if (d.getDay() === 0) cell.classList.add("week-sun");
+    if (d.getDay() === 0 || holidayName) cell.classList.add("week-sun");
     if (dateStr === today) cell.classList.add("week-today");
-    cell.textContent = `${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS_JA[d.getDay()]})`;
+    cell.innerHTML = `<div>${d.getMonth() + 1}/${d.getDate()}(${WEEKDAYS_JA[d.getDay()]})</div>`;
+    if (holidayName) {
+      cell.title = holidayName;
+      cell.innerHTML += `<div class="week-holiday-name">${escapeHtml(holidayName)}</div>`;
+    }
     headerRow.appendChild(cell);
   });
   grid.appendChild(headerRow);
@@ -345,10 +376,11 @@ function renderSchedule() {
 
     days.forEach((d) => {
       const dateStr = toDateStr(d);
+      const holidayName = state.holidays && state.holidays[dateStr];
       const cell = document.createElement("div");
       cell.className = "week-cell week-day-cell";
       if (d.getDay() === 6) cell.classList.add("week-sat");
-      if (d.getDay() === 0) cell.classList.add("week-sun");
+      if (d.getDay() === 0 || holidayName) cell.classList.add("week-sun");
       if (dateStr === today) cell.classList.add("week-today");
 
       const items = ((itemsByRepDate[rep] && itemsByRepDate[rep][dateStr]) || []).slice();
@@ -611,7 +643,8 @@ function createReportEntryEl(data) {
       <span class="report-entry-num"></span>
       <button type="button" class="report-entry-remove">✕ この行を削除</button>
     </div>
-    <label>顧客名<input type="text" data-field="clientName" required /></label>
+    <label>顧客名<input type="text" data-field="clientName" list="known-clients" required autocomplete="off" /></label>
+    <div class="report-entry-history hidden" data-history></div>
     <label>内容<input type="text" data-field="content" /></label>
     <label>作業区分<input type="text" data-field="workType" placeholder="訪問・電話・見積 等" /></label>
     <label>請求対象<select data-field="billing"><option value="対象">対象</option><option value="対象外">対象外</option></select></label>
@@ -627,7 +660,45 @@ function createReportEntryEl(data) {
     wrap.remove();
     renumberReportEntries();
   });
+  const clientInput = wrap.querySelector('[data-field="clientName"]');
+  const historyEl = wrap.querySelector("[data-history]");
+  const excludeId = state.editing.collection === "dailyReports" ? state.editing.id : null;
+  clientInput.addEventListener("input", () => {
+    renderClientHistory(clientInput.value, historyEl, excludeId);
+  });
+  renderClientHistory(clientInput.value, historyEl, excludeId);
   return wrap;
+}
+/* 顧客名にマッチする過去の日報履歴を表示 */
+function renderClientHistory(name, el, excludeId) {
+  const q = (name || "").trim();
+  if (!q) {
+    el.innerHTML = "";
+    el.classList.add("hidden");
+    return;
+  }
+  const matches = state.data.dailyReports
+    .filter((r) => r.id !== excludeId && (r.clientName || "").includes(q))
+    .slice()
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  if (matches.length === 0) {
+    el.innerHTML = '<div class="history-empty">この顧客の過去履歴はありません</div>';
+    el.classList.remove("hidden");
+    return;
+  }
+  const shown = matches.slice(0, 5);
+  el.innerHTML =
+    `<div class="history-title">🕘 「${escapeHtml(q)}」の履歴（${matches.length}件中${shown.length}件表示）</div>` +
+    shown
+      .map(
+        (m) => `
+      <div class="history-item">
+        <div class="history-item-row1"><span class="history-date">${escapeHtml(m.date || "")}</span><span class="history-rep">${escapeHtml(m.rep || "")}</span></div>
+        <div class="history-item-row2">${escapeHtml(m.content || m.workType || "-")}</div>
+      </div>`
+      )
+      .join("");
+  el.classList.remove("hidden");
 }
 function addReportEntry(data) {
   document.getElementById("report-entries").appendChild(createReportEntryEl(data));
@@ -1166,6 +1237,7 @@ function startListeners() {
     state.data.dailyReports = items;
     renderReports();
     renderDashboard();
+    populateKnownClientsDatalist();
   });
   listen("deals", (items) => {
     state.data.deals = items;
@@ -1175,7 +1247,25 @@ function startListeners() {
   listen("clients", (items) => {
     state.data.clients = items;
     renderClients();
+    populateKnownClientsDatalist();
   });
+}
+
+/* 日報・取引先から既知の顧客名を集めてオートコンプリート候補を更新 */
+function populateKnownClientsDatalist() {
+  const dl = document.getElementById("known-clients");
+  if (!dl) return;
+  const names = new Set();
+  state.data.dailyReports.forEach((r) => {
+    if (r.clientName) names.add(r.clientName);
+  });
+  state.data.clients.forEach((c) => {
+    if (c.company) names.add(c.company);
+  });
+  dl.innerHTML = Array.from(names)
+    .sort((a, b) => a.localeCompare(b, "ja"))
+    .map((n) => `<option value="${escapeHtml(n)}"></option>`)
+    .join("");
 }
 
 function init() {
@@ -1184,6 +1274,7 @@ function init() {
   setupModals();
   setupFilters();
   populateRepSelects();
+  loadHolidays();
 
   if (!initFirebase()) return;
 
