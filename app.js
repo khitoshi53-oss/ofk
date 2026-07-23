@@ -442,6 +442,8 @@ function renderSchedule() {
     });
     grid.appendChild(row);
   });
+
+  renderScheduleMarquee(state.data.settings || {});
 }
 function editSchedule(item) {
   state.editing = { collection: "schedule", id: item.id };
@@ -1514,19 +1516,20 @@ function renderDashboard() {
   renderMarquee(settings);
 }
 
-/* ---------------- ダッシュボード お知らせ（スクロールテキスト） ----------------
- * 編集できるのは管理者（川﨑）のみ。 */
-function renderMarquee(settings) {
-  const text = (settings.dashboardMarquee || "").trim();
-  const wrap = document.getElementById("dashboard-marquee");
-  const track = document.getElementById("dashboard-marquee-track");
-  const spanA = document.getElementById("dashboard-marquee-text-a");
-  const spanB = document.getElementById("dashboard-marquee-text-b");
+/* ---------------- お知らせ（スクロールテキスト）共通処理 ----------------
+ * 編集できるのは管理者（川﨑）のみ。ダッシュボード・予定表それぞれに1本ずつ持つ。 */
+function updateMarqueeDisplay(text, ids) {
+  const wrap = document.getElementById(ids.wrap);
+  const track = document.getElementById(ids.track);
+  const spanA = document.getElementById(ids.textA);
+  const spanB = document.getElementById(ids.textB);
+  const editBtn = document.getElementById(ids.editBtn);
   const isAdmin = state.currentUser === ADMIN_REP;
 
-  document.getElementById("marquee-edit-btn").classList.toggle("hidden", !isAdmin);
+  if (editBtn) editBtn.classList.toggle("hidden", !isAdmin);
 
-  if (!text) {
+  const trimmed = (text || "").trim();
+  if (!trimmed) {
     wrap.classList.add("hidden");
     track.classList.remove("is-animating");
     spanA.textContent = "";
@@ -1534,44 +1537,75 @@ function renderMarquee(settings) {
     return;
   }
   wrap.classList.remove("hidden");
-  spanA.textContent = text;
-  spanB.textContent = text;
+  spanA.textContent = trimmed;
+  spanB.textContent = trimmed;
   // 文字量に応じてスクロール時間を調整（速すぎ/遅すぎを防止）
-  const duration = Math.max(8, Math.min(40, text.length * 0.35));
+  const duration = Math.max(8, Math.min(40, trimmed.length * 0.35));
   track.style.animationDuration = duration + "s";
   track.classList.add("is-animating");
 }
-
-function fillMarqueeForm() {
-  const settings = state.data.settings || {};
-  document.getElementById("form-marquee").marqueeText.value = settings.dashboardMarquee || "";
+function setupMarquee(opts) {
+  // opts: { settingsKey, ids: {wrap, track, textA, textB, editBtn}, editBtnId, formId, modalId }
+  document.getElementById(opts.editBtnId).addEventListener("click", () => {
+    if (state.currentUser !== ADMIN_REP) {
+      showToast("権限がありません（管理者のみ編集できます）");
+      return;
+    }
+    const settings = state.data.settings || {};
+    document.getElementById(opts.formId).marqueeText.value = settings[opts.settingsKey] || "";
+    openModal(opts.modalId);
+  });
+  document.getElementById(opts.formId).addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (state.currentUser !== ADMIN_REP) {
+      showToast("権限がありません（管理者のみ編集できます）");
+      return;
+    }
+    const value = e.target.marqueeText.value.trim();
+    const payload = { [opts.settingsKey]: value };
+    state.db
+      .collection("settings")
+      .doc("main")
+      .set(payload, { merge: true })
+      .then(() => {
+        state.data.settings = { ...(state.data.settings || {}), ...payload };
+        showToast("お知らせを保存しました");
+        closeAllModals();
+        renderDashboard();
+        renderSchedule();
+      })
+      .catch((err) => showToast("保存エラー: " + err.message));
+  });
 }
-document.getElementById("marquee-edit-btn").addEventListener("click", () => {
-  if (state.currentUser !== ADMIN_REP) {
-    showToast("権限がありません（管理者のみ編集できます）");
-    return;
-  }
-  fillMarqueeForm();
-  openModal("modal-marquee");
-});
-document.getElementById("form-marquee").addEventListener("submit", (e) => {
-  e.preventDefault();
-  if (state.currentUser !== ADMIN_REP) {
-    showToast("権限がありません（管理者のみ編集できます）");
-    return;
-  }
-  const dashboardMarquee = e.target.marqueeText.value.trim();
-  state.db
-    .collection("settings")
-    .doc("main")
-    .set({ dashboardMarquee }, { merge: true })
-    .then(() => {
-      state.data.settings = { ...(state.data.settings || {}), dashboardMarquee };
-      showToast("お知らせを保存しました");
-      closeAllModals();
-      renderDashboard();
-    })
-    .catch((err) => showToast("保存エラー: " + err.message));
+
+const DASHBOARD_MARQUEE_IDS = {
+  wrap: "dashboard-marquee",
+  track: "dashboard-marquee-track",
+  textA: "dashboard-marquee-text-a",
+  textB: "dashboard-marquee-text-b",
+  editBtn: "marquee-edit-btn",
+};
+const SCHEDULE_MARQUEE_IDS = {
+  wrap: "schedule-marquee",
+  track: "schedule-marquee-track",
+  textA: "schedule-marquee-text-a",
+  textB: "schedule-marquee-text-b",
+  editBtn: "schedule-marquee-edit-btn",
+};
+
+function renderMarquee(settings) {
+  updateMarqueeDisplay(settings.dashboardMarquee, DASHBOARD_MARQUEE_IDS);
+}
+function renderScheduleMarquee(settings) {
+  updateMarqueeDisplay(settings.scheduleMarquee, SCHEDULE_MARQUEE_IDS);
+}
+
+setupMarquee({ settingsKey: "dashboardMarquee", editBtnId: "marquee-edit-btn", formId: "form-marquee", modalId: "modal-marquee" });
+setupMarquee({
+  settingsKey: "scheduleMarquee",
+  editBtnId: "schedule-marquee-edit-btn",
+  formId: "form-schedule-marquee",
+  modalId: "modal-schedule-marquee",
 });
 
 function businessDaysInMonthSoFar() {
@@ -1758,11 +1792,13 @@ function loadSettings() {
           manualProfitAdjustment: 0,
           repSales: {},
           dashboardMarquee: "",
+          scheduleMarquee: "",
         };
         state.db.collection("settings").doc("main").set(defaults);
         state.data.settings = defaults;
       }
       renderDashboard();
+      renderSchedule();
     })
     .catch((err) => console.error("settings load error", err));
 }
