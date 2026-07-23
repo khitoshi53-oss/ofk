@@ -98,6 +98,23 @@
       </div>
     </section>
 
+    <!-- 受注書 -->
+    <section id="view-orders" class="view hidden">
+      <div class="view-header">
+        <h2>受注書</h2>
+        <button class="fab-inline" data-open-modal="modal-order">＋ 受注書を追加</button>
+      </div>
+      <div class="filter-row">
+        <select id="order-status-filter">
+          <option value="">発行状況すべて</option>
+          <option value="未発行">未発行</option>
+          <option value="発行完了">発行完了</option>
+        </select>
+        <select id="order-rep-filter"><option value="">全担当者</option></select>
+      </div>
+      <div id="order-list" class="list"></div>
+    </section>
+
     <!-- TODO -->
     <section id="view-todo" class="view hidden">
       <div class="view-header">
@@ -198,6 +215,7 @@
   <nav class="bottom-nav">
     <button class="nav-btn active" data-view="view-dashboard"><span>📊</span>ダッシュボード</button>
     <button class="nav-btn" data-view="view-schedule"><span>📅</span>予定表</button>
+    <button class="nav-btn" data-view="view-orders"><span>🧾</span>受注書</button>
     <button class="nav-btn" data-view="view-todo"><span>✅</span>TODO</button>
     <button class="nav-btn" data-view="view-reports"><span>📝</span>日報</button>
     <button class="nav-btn" data-view="view-deals"><span>🎯</span>確定/見込</button>
@@ -234,6 +252,95 @@
     <div class="modal-actions">
       <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
       <button type="button" id="schedule-delete-btn" class="btn-secondary btn-danger hidden">削除</button>
+      <button type="submit" class="btn-primary">保存</button>
+    </div>
+  </form>
+</div>
+
+<!-- モーダル: 受注書追加 -->
+<div class="modal-backdrop hidden" id="modal-order">
+  <form class="modal-card" id="form-order">
+    <h3 id="order-modal-title">受注書を追加</h3>
+    <label>顧客名<input type="text" name="clientName" required /></label>
+
+    <label>受注日<input type="date" name="orderDate" /></label>
+    <label>受注者<select name="orderTakenBy"><option value="">選択してください</option></select></label>
+
+    <label>発注日<input type="date" name="purchaseDate" /></label>
+    <label>発注者<select name="orderPlacedBy"><option value="">選択してください</option></select></label>
+
+    <label>発注先
+      <select name="supplier">
+        <option value="">選択してください</option>
+        <option value="ダイワボウ">ダイワボウ</option>
+        <option value="アケボノクラウン">アケボノクラウン</option>
+        <option value="杭瀬印刷工社">杭瀬印刷工社</option>
+        <option value="スナミビジネスマシン">スナミビジネスマシン</option>
+        <option value="カネユキ">カネユキ</option>
+        <option value="大阪プラント">大阪プラント</option>
+        <option value="クオーチェ">クオーチェ</option>
+        <option value="Amazon">Amazon</option>
+        <option value="楽天市場">楽天市場</option>
+        <option value="イートレンド">イートレンド</option>
+        <option value="アスクル">アスクル</option>
+        <option value="スマートオフィス">スマートオフィス</option>
+        <option value="LINE">LINE</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
+    <label id="order-supplier-other-wrap" class="hidden">発注先（その他）<input type="text" name="supplierOther" placeholder="発注先名を入力" /></label>
+
+    <label>納品日<input type="date" name="deliveryDate" /></label>
+    <label>納品者<select name="deliveredBy"><option value="">選択してください</option></select></label>
+    <label>納品書発行
+      <select name="deliveryNoteStatus">
+        <option value="未発行">未発行</option>
+        <option value="発行完了">発行完了</option>
+      </select>
+    </label>
+
+    <div class="order-items">
+      <p class="muted small">商品（最大5点）</p>
+      <div class="order-item-row order-item-row-header">
+        <span>商品名</span><span>数量</span><span>仕切金額</span><span>販売金額</span>
+      </div>
+      <div class="order-item-row" data-order-row="1">
+        <input type="text" data-field="productName" placeholder="商品名" />
+        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+      </div>
+      <div class="order-item-row" data-order-row="2">
+        <input type="text" data-field="productName" placeholder="商品名" />
+        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+      </div>
+      <div class="order-item-row" data-order-row="3">
+        <input type="text" data-field="productName" placeholder="商品名" />
+        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+      </div>
+      <div class="order-item-row" data-order-row="4">
+        <input type="text" data-field="productName" placeholder="商品名" />
+        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+      </div>
+      <div class="order-item-row" data-order-row="5">
+        <input type="text" data-field="productName" placeholder="商品名" />
+        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+      </div>
+    </div>
+
+    <label>メモ<textarea name="memo" rows="2"></textarea></label>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" data-close-modal>キャンセル</button>
+      <button type="button" id="order-delete-btn" class="btn-secondary btn-danger hidden">削除</button>
       <button type="submit" class="btn-primary">保存</button>
     </div>
   </form>

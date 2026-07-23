@@ -261,6 +261,16 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .report-entry-time-row { display: flex; align-items: center; gap: 6px; }
 .report-entry-time-row input[type="time"] { flex: 1; min-width: 0; }
 .report-entry-time-sep { color: var(--muted); font-size: 13px; flex: none; }
+
+/* --- 受注書モーダル: 商品行 --- */
+.order-items { display: flex; flex-direction: column; gap: 6px; }
+.order-item-row {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 6px;
+}
+.order-item-row input {
+  padding: 8px 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; min-width: 0;
+}
+.order-item-row-header span { font-size: 11px; color: var(--muted); font-weight: 600; }
 .history-title { font-size: 11px; font-weight: 700; color: var(--primary-dark); }
 .history-empty { font-size: 12px; color: var(--muted); }
 .history-item + .history-item { border-top: 1px solid var(--border); padding-top: 5px; margin-top: 5px; }
@@ -294,6 +304,8 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .tag.status-承認待ち { background: #fff4e0; color: var(--warning); }
 .tag.status-承認 { background: #e6f7ea; color: var(--success); }
 .tag.status-却下 { background: #fdeceb; color: var(--danger); }
+.tag.status-未発行 { background: #fdeceb; color: var(--danger); }
+.tag.status-発行完了 { background: #e6f7ea; color: var(--success); }
 
 /* --- 各種申請 --- */
 .request-add-buttons { display: flex; gap: 8px; margin-bottom: 14px; }

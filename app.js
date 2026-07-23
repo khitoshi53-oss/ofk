@@ -22,6 +22,7 @@ const state = {
     deals: [],
     clients: [],
     requests: [],
+    orders: [],
     settings: null,
   },
 };
@@ -143,6 +144,14 @@ function setupModals() {
         form.expenseDate.value = todayStr();
         form.status.value = "承認待ち";
       }
+      if (btn.dataset.openModal === "modal-order") {
+        document.getElementById("order-modal-title").textContent = "受注書を追加";
+        document.getElementById("order-delete-btn").classList.add("hidden");
+        const form = document.getElementById("form-order");
+        form.orderDate.value = todayStr();
+        form.deliveryNoteStatus.value = "未発行";
+        updateOrderSupplierVisibility();
+      }
     });
   });
   document.querySelectorAll("[data-close-modal]").forEach((btn) => {
@@ -169,6 +178,8 @@ function closeAllModals() {
   document.getElementById("report-entries").innerHTML = "";
   document.getElementById("leave-delete-btn").classList.add("hidden");
   document.getElementById("expense-delete-btn").classList.add("hidden");
+  document.getElementById("order-delete-btn").classList.add("hidden");
+  document.getElementById("order-supplier-other-wrap").classList.add("hidden");
   state.editing = { collection: null, id: null };
 }
 
@@ -210,7 +221,7 @@ document.getElementById("form-schedule").rep.addEventListener("change", renderCo
 
 function populateRepSelects() {
   const selects = document.querySelectorAll(
-    'select[name="rep"], select[name="assignee"], select[name="owner"], select[name="requester"], #schedule-rep-filter, #todo-rep-filter, #report-rep-filter, #deal-rep-filter, #request-rep-filter'
+    'select[name="rep"], select[name="assignee"], select[name="owner"], select[name="requester"], select[name="orderTakenBy"], select[name="orderPlacedBy"], select[name="deliveredBy"], #schedule-rep-filter, #todo-rep-filter, #report-rep-filter, #deal-rep-filter, #request-rep-filter, #order-rep-filter'
   );
   selects.forEach((sel) => {
     const keepFirst = sel.querySelector('option[value=""]');
@@ -517,6 +528,149 @@ document.getElementById("schedule-delete-btn").addEventListener("click", () => {
   deleteDoc("schedule", state.editing.id)
     .then(() => {
       showToast("予定を削除しました");
+      closeAllModals();
+    })
+    .catch((err) => showToast("削除エラー: " + err.message));
+});
+
+/* ================================================================
+ * 受注書
+ * ================================================================ */
+function updateOrderSupplierVisibility() {
+  const form = document.getElementById("form-order");
+  document.getElementById("order-supplier-other-wrap").classList.toggle("hidden", form.supplier.value !== "その他");
+}
+document.getElementById("form-order").supplier.addEventListener("change", updateOrderSupplierVisibility);
+
+function orderSupplierLabel(item) {
+  return item.supplier === "その他" ? item.supplierOther || "その他" : item.supplier || "-";
+}
+
+function orderItemTotals(items) {
+  return (items || []).reduce(
+    (acc, it) => {
+      acc.qty += Number(it.qty) || 0;
+      acc.cost += Number(it.costAmount) || 0;
+      acc.sale += Number(it.saleAmount) || 0;
+      return acc;
+    },
+    { qty: 0, cost: 0, sale: 0 }
+  );
+}
+
+function renderOrders() {
+  const statusFilter = document.getElementById("order-status-filter").value;
+  const repFilter = document.getElementById("order-rep-filter").value;
+  let items = state.data.orders.slice();
+  if (statusFilter) items = items.filter((i) => (i.deliveryNoteStatus || "未発行") === statusFilter);
+  if (repFilter) items = items.filter((i) => i.orderTakenBy === repFilter);
+  items.sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || ""));
+
+  const list = document.getElementById("order-list");
+  list.innerHTML = "";
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-msg">受注書がありません</div>';
+    return;
+  }
+  items.forEach((item) => {
+    const status = item.deliveryNoteStatus || "未発行";
+    const totals = orderItemTotals(item.items);
+    const productNames = (item.items || []).map((it) => it.productName).filter(Boolean).join("、");
+    const el = document.createElement("div");
+    el.className = "list-item";
+    el.innerHTML = `
+      <div class="row1"><span>${escapeHtml(item.clientName || "")}</span><span class="tag status-${escapeHtml(status)}">${escapeHtml(status)}</span></div>
+      <div class="row2">受注日: ${escapeHtml(item.orderDate || "-")} ／ 受注者: ${escapeHtml(item.orderTakenBy || "-")}</div>
+      <div class="row2">発注日: ${escapeHtml(item.purchaseDate || "-")} ／ 発注者: ${escapeHtml(item.orderPlacedBy || "-")} ／ 発注先: ${escapeHtml(orderSupplierLabel(item))}</div>
+      <div class="row2">納品日: ${escapeHtml(item.deliveryDate || "-")} ／ 納品者: ${escapeHtml(item.deliveredBy || "-")}</div>
+      ${productNames ? `<div class="row2">商品: ${escapeHtml(productNames)}</div>` : ""}
+      <div class="row2">数量計: ${totals.qty} ／ 仕切金額計: ${yen(totals.cost)} ／ 販売金額計: ${yen(totals.sale)}</div>
+      <div class="item-actions">
+        <button data-edit="${item.id}">編集</button>
+        <button data-delete="${item.id}" class="danger">削除</button>
+      </div>`;
+    el.querySelector("[data-edit]").addEventListener("click", () => editOrder(item));
+    el.querySelector("[data-delete]").addEventListener("click", () => {
+      if (confirm("この受注書を削除しますか？")) deleteDoc("orders", item.id);
+    });
+    list.appendChild(el);
+  });
+}
+
+function editOrder(item) {
+  state.editing = { collection: "orders", id: item.id };
+  const form = document.getElementById("form-order");
+  form.clientName.value = item.clientName || "";
+  form.orderDate.value = item.orderDate || "";
+  form.orderTakenBy.value = item.orderTakenBy || "";
+  form.purchaseDate.value = item.purchaseDate || "";
+  form.orderPlacedBy.value = item.orderPlacedBy || "";
+  form.supplier.value = item.supplier || "";
+  form.supplierOther.value = item.supplierOther || "";
+  form.deliveryDate.value = item.deliveryDate || "";
+  form.deliveredBy.value = item.deliveredBy || "";
+  form.deliveryNoteStatus.value = item.deliveryNoteStatus || "未発行";
+  form.memo.value = item.memo || "";
+  updateOrderSupplierVisibility();
+
+  const rows = document.querySelectorAll("#form-order .order-item-row[data-order-row]");
+  const savedItems = item.items || [];
+  rows.forEach((row, idx) => {
+    const it = savedItems[idx] || {};
+    row.querySelector('[data-field="productName"]').value = it.productName || "";
+    row.querySelector('[data-field="qty"]').value = it.qty || "";
+    row.querySelector('[data-field="costAmount"]').value = it.costAmount || "";
+    row.querySelector('[data-field="saleAmount"]').value = it.saleAmount || "";
+  });
+
+  document.getElementById("order-modal-title").textContent = "受注書を編集";
+  document.getElementById("order-delete-btn").classList.remove("hidden");
+  openModal("modal-order");
+}
+
+document.getElementById("form-order").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const rows = document.querySelectorAll("#form-order .order-item-row[data-order-row]");
+  const items = Array.from(rows)
+    .map((row) => ({
+      productName: row.querySelector('[data-field="productName"]').value,
+      qty: row.querySelector('[data-field="qty"]').value,
+      costAmount: row.querySelector('[data-field="costAmount"]').value,
+      saleAmount: row.querySelector('[data-field="saleAmount"]').value,
+    }))
+    .filter((it) => it.productName || it.qty || it.costAmount || it.saleAmount);
+
+  const payload = {
+    clientName: f.clientName.value,
+    orderDate: f.orderDate.value,
+    orderTakenBy: f.orderTakenBy.value,
+    purchaseDate: f.purchaseDate.value,
+    orderPlacedBy: f.orderPlacedBy.value,
+    supplier: f.supplier.value,
+    supplierOther: f.supplier.value === "その他" ? f.supplierOther.value : "",
+    deliveryDate: f.deliveryDate.value,
+    deliveredBy: f.deliveredBy.value,
+    deliveryNoteStatus: f.deliveryNoteStatus.value,
+    memo: f.memo.value,
+    items,
+  };
+
+  const p =
+    state.editing.collection === "orders" && state.editing.id
+      ? updateDoc("orders", state.editing.id, payload)
+      : addDoc("orders", payload);
+  p.then(() => {
+    showToast("受注書を保存しました");
+    closeAllModals();
+  }).catch((err) => showToast("保存エラー: " + err.message));
+});
+document.getElementById("order-delete-btn").addEventListener("click", () => {
+  if (state.editing.collection !== "orders" || !state.editing.id) return;
+  if (!confirm("この受注書を削除しますか？")) return;
+  deleteDoc("orders", state.editing.id)
+    .then(() => {
+      showToast("受注書を削除しました");
       closeAllModals();
     })
     .catch((err) => showToast("削除エラー: " + err.message));
@@ -1764,6 +1918,9 @@ function setupFilters() {
   ["request-type-filter", "request-status-filter", "request-rep-filter"].forEach((id) =>
     document.getElementById(id).addEventListener("change", renderRequests)
   );
+  ["order-status-filter", "order-rep-filter"].forEach((id) =>
+    document.getElementById(id).addEventListener("change", renderOrders)
+  );
   document.getElementById("report-month-filter").value = currentMonthKey();
 }
 
@@ -1874,6 +2031,10 @@ function startListeners() {
     state.data.requests = items;
     renderRequests();
     renderDashboard();
+  });
+  listen("orders", (items) => {
+    state.data.orders = items;
+    renderOrders();
   });
 }
 
