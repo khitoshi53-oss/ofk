@@ -150,7 +150,7 @@ function setupModals() {
         const form = document.getElementById("form-order");
         form.orderDate.value = todayStr();
         form.deliveryNoteStatus.value = "未発行";
-        updateOrderSupplierVisibility();
+        resetOrderItemRowsVisibility();
       }
     });
   });
@@ -179,7 +179,7 @@ function closeAllModals() {
   document.getElementById("leave-delete-btn").classList.add("hidden");
   document.getElementById("expense-delete-btn").classList.add("hidden");
   document.getElementById("order-delete-btn").classList.add("hidden");
-  document.getElementById("order-supplier-other-wrap").classList.add("hidden");
+  resetOrderItemRowsVisibility();
   state.editing = { collection: null, id: null };
 }
 
@@ -536,14 +536,23 @@ document.getElementById("schedule-delete-btn").addEventListener("click", () => {
 /* ================================================================
  * 受注書
  * ================================================================ */
-function updateOrderSupplierVisibility() {
-  const form = document.getElementById("form-order");
-  document.getElementById("order-supplier-other-wrap").classList.toggle("hidden", form.supplier.value !== "その他");
+// 商品行ごとに発注先を選択する。「その他」を選んだ行だけ自由入力欄を表示する。
+function updateOrderRowSupplierVisibility(row) {
+  const supplierSel = row.querySelector('[data-field="supplier"]');
+  const otherInput = row.querySelector('[data-field="supplierOther"]');
+  otherInput.classList.toggle("hidden", supplierSel.value !== "その他");
 }
-document.getElementById("form-order").supplier.addEventListener("change", updateOrderSupplierVisibility);
+function resetOrderItemRowsVisibility() {
+  document.querySelectorAll("#form-order .order-item-row[data-order-row]").forEach((row) => {
+    updateOrderRowSupplierVisibility(row);
+  });
+}
+document.querySelectorAll("#form-order .order-item-row[data-order-row]").forEach((row) => {
+  row.querySelector('[data-field="supplier"]').addEventListener("change", () => updateOrderRowSupplierVisibility(row));
+});
 
-function orderSupplierLabel(item) {
-  return item.supplier === "その他" ? item.supplierOther || "その他" : item.supplier || "-";
+function orderItemSupplierLabel(it) {
+  return it.supplier === "その他" ? it.supplierOther || "その他" : it.supplier || "";
 }
 
 function orderItemTotals(items) {
@@ -585,15 +594,21 @@ function renderOrders() {
   }
   items.forEach((item) => {
     const totals = orderItemTotals(item.items);
-    const productNames = (item.items || []).map((it) => it.productName).filter(Boolean).join("、");
+    const productLines = (item.items || [])
+      .filter((it) => it.productName)
+      .map((it) => {
+        const supplier = orderItemSupplierLabel(it);
+        return escapeHtml(it.productName) + (supplier ? `（${escapeHtml(supplier)}）` : "");
+      })
+      .join("、");
     const el = document.createElement("div");
     el.className = "list-item";
     el.innerHTML = `
       <div class="row1"><span>${escapeHtml(item.clientName || "")}</span><span class="row1-tags">${orderStatusTagsHtml(item)}</span></div>
       <div class="row2">受注日: ${escapeHtml(item.orderDate || "-")} ／ 受注者: ${escapeHtml(item.orderTakenBy || "-")}</div>
-      <div class="row2">発注日: ${escapeHtml(item.purchaseDate || "-")} ／ 発注者: ${escapeHtml(item.orderPlacedBy || "-")} ／ 発注先: ${escapeHtml(orderSupplierLabel(item))}</div>
+      <div class="row2">発注日: ${escapeHtml(item.purchaseDate || "-")} ／ 発注者: ${escapeHtml(item.orderPlacedBy || "-")}</div>
       <div class="row2">納品日: ${escapeHtml(item.deliveryDate || "-")} ／ 納品者: ${escapeHtml(item.deliveredBy || "-")}</div>
-      ${productNames ? `<div class="row2">商品: ${escapeHtml(productNames)}</div>` : ""}
+      ${productLines ? `<div class="row2">商品: ${productLines}</div>` : ""}
       <div class="row2">数量計: ${totals.qty} ／ 仕切金額計: ${yen(totals.cost)} ／ 販売金額計: ${yen(totals.sale)}</div>
       <div class="item-actions">
         <button data-edit="${item.id}">編集</button>
@@ -615,22 +630,22 @@ function editOrder(item) {
   form.orderTakenBy.value = item.orderTakenBy || "";
   form.purchaseDate.value = item.purchaseDate || "";
   form.orderPlacedBy.value = item.orderPlacedBy || "";
-  form.supplier.value = item.supplier || "";
-  form.supplierOther.value = item.supplierOther || "";
   form.deliveryDate.value = item.deliveryDate || "";
   form.deliveredBy.value = item.deliveredBy || "";
   form.deliveryNoteStatus.value = item.deliveryNoteStatus || "未発行";
   form.memo.value = item.memo || "";
-  updateOrderSupplierVisibility();
 
   const rows = document.querySelectorAll("#form-order .order-item-row[data-order-row]");
   const savedItems = item.items || [];
   rows.forEach((row, idx) => {
     const it = savedItems[idx] || {};
     row.querySelector('[data-field="productName"]').value = it.productName || "";
+    row.querySelector('[data-field="supplier"]').value = it.supplier || "";
+    row.querySelector('[data-field="supplierOther"]').value = it.supplierOther || "";
     row.querySelector('[data-field="qty"]').value = it.qty || "";
     row.querySelector('[data-field="costAmount"]').value = it.costAmount || "";
     row.querySelector('[data-field="saleAmount"]').value = it.saleAmount || "";
+    updateOrderRowSupplierVisibility(row);
   });
 
   document.getElementById("order-modal-title").textContent = "受注書を編集";
@@ -643,13 +658,18 @@ document.getElementById("form-order").addEventListener("submit", (e) => {
   const f = e.target;
   const rows = document.querySelectorAll("#form-order .order-item-row[data-order-row]");
   const items = Array.from(rows)
-    .map((row) => ({
-      productName: row.querySelector('[data-field="productName"]').value,
-      qty: row.querySelector('[data-field="qty"]').value,
-      costAmount: row.querySelector('[data-field="costAmount"]').value,
-      saleAmount: row.querySelector('[data-field="saleAmount"]').value,
-    }))
-    .filter((it) => it.productName || it.qty || it.costAmount || it.saleAmount);
+    .map((row) => {
+      const supplier = row.querySelector('[data-field="supplier"]').value;
+      return {
+        productName: row.querySelector('[data-field="productName"]').value,
+        supplier,
+        supplierOther: supplier === "その他" ? row.querySelector('[data-field="supplierOther"]').value : "",
+        qty: row.querySelector('[data-field="qty"]').value,
+        costAmount: row.querySelector('[data-field="costAmount"]').value,
+        saleAmount: row.querySelector('[data-field="saleAmount"]').value,
+      };
+    })
+    .filter((it) => it.productName || it.supplier || it.qty || it.costAmount || it.saleAmount);
 
   const payload = {
     clientName: f.clientName.value,
@@ -657,8 +677,6 @@ document.getElementById("form-order").addEventListener("submit", (e) => {
     orderTakenBy: f.orderTakenBy.value,
     purchaseDate: f.purchaseDate.value,
     orderPlacedBy: f.orderPlacedBy.value,
-    supplier: f.supplier.value,
-    supplierOther: f.supplier.value === "その他" ? f.supplierOther.value : "",
     deliveryDate: f.deliveryDate.value,
     deliveredBy: f.deliveredBy.value,
     deliveryNoteStatus: f.deliveryNoteStatus.value,

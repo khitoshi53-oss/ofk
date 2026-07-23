@@ -269,27 +269,6 @@
     <label>発注日<input type="date" name="purchaseDate" /></label>
     <label>発注者<select name="orderPlacedBy"><option value="">選択してください</option></select></label>
 
-    <label>発注先
-      <select name="supplier">
-        <option value="">選択してください</option>
-        <option value="ダイワボウ">ダイワボウ</option>
-        <option value="アケボノクラウン">アケボノクラウン</option>
-        <option value="杭瀬印刷工社">杭瀬印刷工社</option>
-        <option value="スナミビジネスマシン">スナミビジネスマシン</option>
-        <option value="カネユキ">カネユキ</option>
-        <option value="大阪プラント">大阪プラント</option>
-        <option value="クオーチェ">クオーチェ</option>
-        <option value="Amazon">Amazon</option>
-        <option value="楽天市場">楽天市場</option>
-        <option value="イートレンド">イートレンド</option>
-        <option value="アスクル">アスクル</option>
-        <option value="スマートオフィス">スマートオフィス</option>
-        <option value="LINE">LINE</option>
-        <option value="その他">その他</option>
-      </select>
-    </label>
-    <label id="order-supplier-other-wrap" class="hidden">発注先（その他）<input type="text" name="supplierOther" placeholder="発注先名を入力" /></label>
-
     <label>納品日<input type="date" name="deliveryDate" /></label>
     <label>納品者<select name="deliveredBy"><option value="">選択してください</option></select></label>
     <label>納品書発行
@@ -300,39 +279,141 @@
     </label>
 
     <div class="order-items">
-      <p class="muted small">商品（最大5点）</p>
-      <div class="order-item-row order-item-row-header">
-        <span>商品名</span><span>数量</span><span>仕切金額</span><span>販売金額</span>
-      </div>
+      <p class="muted small">商品（最大5点・商品ごとに発注先を選択できます）</p>
       <div class="order-item-row" data-order-row="1">
+        <div class="order-item-row-num">商品 1</div>
         <input type="text" data-field="productName" placeholder="商品名" />
-        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
-        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
-        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        <select data-field="supplier">
+          <option value="">発注先を選択</option>
+          <option value="ダイワボウ">ダイワボウ</option>
+          <option value="アケボノクラウン">アケボノクラウン</option>
+          <option value="杭瀬印刷工社">杭瀬印刷工社</option>
+          <option value="スナミビジネスマシン">スナミビジネスマシン</option>
+          <option value="カネユキ">カネユキ</option>
+          <option value="大阪プラント">大阪プラント</option>
+          <option value="クオーチェ">クオーチェ</option>
+          <option value="Amazon">Amazon</option>
+          <option value="楽天市場">楽天市場</option>
+          <option value="イートレンド">イートレンド</option>
+          <option value="アスクル">アスクル</option>
+          <option value="スマートオフィス">スマートオフィス</option>
+          <option value="LINE">LINE</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" data-field="supplierOther" class="hidden" placeholder="発注先名を入力（その他）" />
+        <div class="order-item-row-grid3">
+          <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+          <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+          <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        </div>
       </div>
       <div class="order-item-row" data-order-row="2">
+        <div class="order-item-row-num">商品 2</div>
         <input type="text" data-field="productName" placeholder="商品名" />
-        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
-        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
-        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        <select data-field="supplier">
+          <option value="">発注先を選択</option>
+          <option value="ダイワボウ">ダイワボウ</option>
+          <option value="アケボノクラウン">アケボノクラウン</option>
+          <option value="杭瀬印刷工社">杭瀬印刷工社</option>
+          <option value="スナミビジネスマシン">スナミビジネスマシン</option>
+          <option value="カネユキ">カネユキ</option>
+          <option value="大阪プラント">大阪プラント</option>
+          <option value="クオーチェ">クオーチェ</option>
+          <option value="Amazon">Amazon</option>
+          <option value="楽天市場">楽天市場</option>
+          <option value="イートレンド">イートレンド</option>
+          <option value="アスクル">アスクル</option>
+          <option value="スマートオフィス">スマートオフィス</option>
+          <option value="LINE">LINE</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" data-field="supplierOther" class="hidden" placeholder="発注先名を入力（その他）" />
+        <div class="order-item-row-grid3">
+          <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+          <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+          <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        </div>
       </div>
       <div class="order-item-row" data-order-row="3">
+        <div class="order-item-row-num">商品 3</div>
         <input type="text" data-field="productName" placeholder="商品名" />
-        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
-        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
-        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        <select data-field="supplier">
+          <option value="">発注先を選択</option>
+          <option value="ダイワボウ">ダイワボウ</option>
+          <option value="アケボノクラウン">アケボノクラウン</option>
+          <option value="杭瀬印刷工社">杭瀬印刷工社</option>
+          <option value="スナミビジネスマシン">スナミビジネスマシン</option>
+          <option value="カネユキ">カネユキ</option>
+          <option value="大阪プラント">大阪プラント</option>
+          <option value="クオーチェ">クオーチェ</option>
+          <option value="Amazon">Amazon</option>
+          <option value="楽天市場">楽天市場</option>
+          <option value="イートレンド">イートレンド</option>
+          <option value="アスクル">アスクル</option>
+          <option value="スマートオフィス">スマートオフィス</option>
+          <option value="LINE">LINE</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" data-field="supplierOther" class="hidden" placeholder="発注先名を入力（その他）" />
+        <div class="order-item-row-grid3">
+          <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+          <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+          <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        </div>
       </div>
       <div class="order-item-row" data-order-row="4">
+        <div class="order-item-row-num">商品 4</div>
         <input type="text" data-field="productName" placeholder="商品名" />
-        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
-        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
-        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        <select data-field="supplier">
+          <option value="">発注先を選択</option>
+          <option value="ダイワボウ">ダイワボウ</option>
+          <option value="アケボノクラウン">アケボノクラウン</option>
+          <option value="杭瀬印刷工社">杭瀬印刷工社</option>
+          <option value="スナミビジネスマシン">スナミビジネスマシン</option>
+          <option value="カネユキ">カネユキ</option>
+          <option value="大阪プラント">大阪プラント</option>
+          <option value="クオーチェ">クオーチェ</option>
+          <option value="Amazon">Amazon</option>
+          <option value="楽天市場">楽天市場</option>
+          <option value="イートレンド">イートレンド</option>
+          <option value="アスクル">アスクル</option>
+          <option value="スマートオフィス">スマートオフィス</option>
+          <option value="LINE">LINE</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" data-field="supplierOther" class="hidden" placeholder="発注先名を入力（その他）" />
+        <div class="order-item-row-grid3">
+          <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+          <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+          <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        </div>
       </div>
       <div class="order-item-row" data-order-row="5">
+        <div class="order-item-row-num">商品 5</div>
         <input type="text" data-field="productName" placeholder="商品名" />
-        <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
-        <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
-        <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        <select data-field="supplier">
+          <option value="">発注先を選択</option>
+          <option value="ダイワボウ">ダイワボウ</option>
+          <option value="アケボノクラウン">アケボノクラウン</option>
+          <option value="杭瀬印刷工社">杭瀬印刷工社</option>
+          <option value="スナミビジネスマシン">スナミビジネスマシン</option>
+          <option value="カネユキ">カネユキ</option>
+          <option value="大阪プラント">大阪プラント</option>
+          <option value="クオーチェ">クオーチェ</option>
+          <option value="Amazon">Amazon</option>
+          <option value="楽天市場">楽天市場</option>
+          <option value="イートレンド">イートレンド</option>
+          <option value="アスクル">アスクル</option>
+          <option value="スマートオフィス">スマートオフィス</option>
+          <option value="LINE">LINE</option>
+          <option value="その他">その他</option>
+        </select>
+        <input type="text" data-field="supplierOther" class="hidden" placeholder="発注先名を入力（その他）" />
+        <div class="order-item-row-grid3">
+          <input type="number" data-field="qty" min="0" step="1" placeholder="数量" />
+          <input type="number" data-field="costAmount" min="0" step="1" placeholder="仕切金額" />
+          <input type="number" data-field="saleAmount" min="0" step="1" placeholder="販売金額" />
+        </div>
       </div>
     </div>
 

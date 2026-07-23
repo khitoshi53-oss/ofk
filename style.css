@@ -262,15 +262,17 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .report-entry-time-row input[type="time"] { flex: 1; min-width: 0; }
 .report-entry-time-sep { color: var(--muted); font-size: 13px; flex: none; }
 
-/* --- 受注書モーダル: 商品行 --- */
-.order-items { display: flex; flex-direction: column; gap: 6px; }
+/* --- 受注書モーダル: 商品行（商品ごとに発注先を選択） --- */
+.order-items { display: flex; flex-direction: column; gap: 10px; }
 .order-item-row {
-  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 6px;
+  background: #f8f9fc; border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px; display: flex; flex-direction: column; gap: 6px;
 }
-.order-item-row input {
-  padding: 8px 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; min-width: 0;
+.order-item-row-num { font-size: 12px; font-weight: 700; color: var(--primary-dark); }
+.order-item-row input, .order-item-row select {
+  padding: 8px 8px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; min-width: 0; width: 100%;
 }
-.order-item-row-header span { font-size: 11px; color: var(--muted); font-weight: 600; }
+.order-item-row-grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .history-title { font-size: 11px; font-weight: 700; color: var(--primary-dark); }
 .history-empty { font-size: 12px; color: var(--muted); }
 .history-item + .history-item { border-top: 1px solid var(--border); padding-top: 5px; margin-top: 5px; }
