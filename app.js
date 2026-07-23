@@ -579,11 +579,28 @@ function orderStatusTagsHtml(item) {
   return tags.join("");
 }
 
+// 発行状況フィルターは右上のタグ（未発注／未納品／未発行／発行完了）と同じ基準で絞り込む
+function orderMatchesStatusFilter(item, filter) {
+  const isComplete = (item.deliveryNoteStatus || "未発行") === "発行完了";
+  switch (filter) {
+    case "発行完了":
+      return isComplete;
+    case "未発行":
+      return !isComplete;
+    case "未発注":
+      return !isComplete && !item.purchaseDate;
+    case "未納品":
+      return !isComplete && !item.deliveryDate;
+    default:
+      return true;
+  }
+}
+
 function renderOrders() {
   const statusFilter = document.getElementById("order-status-filter").value;
   const repFilter = document.getElementById("order-rep-filter").value;
   let items = state.data.orders.slice();
-  if (statusFilter) items = items.filter((i) => (i.deliveryNoteStatus || "未発行") === statusFilter);
+  if (statusFilter) items = items.filter((i) => orderMatchesStatusFilter(i, statusFilter));
   if (repFilter) items = items.filter((i) => i.orderTakenBy === repFilter);
   items.sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || ""));
 
