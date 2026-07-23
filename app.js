@@ -711,16 +711,48 @@ function createReportEntryEl(data) {
     <label>顧客名<input type="text" data-field="clientName" list="known-clients" required autocomplete="off" /></label>
     <div class="report-entry-history hidden" data-history></div>
     <label>内容<input type="text" data-field="content" /></label>
-    <label>作業区分<input type="text" data-field="workType" placeholder="訪問・電話・見積 等" /></label>
-    <label>請求対象<select data-field="billing"><option value="対象">対象</option><option value="対象外">対象外</option></select></label>
+    <label>作業区分
+      <select data-field="workType">
+        <option value="">選択してください</option>
+        <option value="営業">営業</option>
+        <option value="納品">納品</option>
+        <option value="集金">集金</option>
+        <option value="来社">来社</option>
+        <option value="設置">設置</option>
+        <option value="訪問修理">訪問修理</option>
+        <option value="訪問サポート">訪問サポート</option>
+        <option value="リモートサポート">リモートサポート</option>
+        <option value="電話サポート">電話サポート</option>
+        <option value="持込修理">持込修理</option>
+        <option value="持込サポート">持込サポート</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
+    <label>請求対象
+      <select data-field="billing">
+        <option value="対象">対象</option>
+        <option value="対象外">対象外</option>
+        <option value="保守契約">保守契約</option>
+        <option value="リモート保守契約">リモート保守契約</option>
+        <option value="見積請求">見積請求</option>
+      </select>
+    </label>
     <label>次回訪問<input type="date" data-field="nextVisit" /></label>
-    <label>時間<input type="text" data-field="time" placeholder="例: 10:00〜11:00" /></label>`;
+    <label>時間
+      <span class="report-entry-time-row">
+        <input type="time" data-field="timeStart" />
+        <span class="report-entry-time-sep">〜</span>
+        <input type="time" data-field="timeEnd" />
+      </span>
+    </label>`;
   wrap.querySelector('[data-field="clientName"]').value = data.clientName || "";
   wrap.querySelector('[data-field="content"]').value = data.content || "";
   wrap.querySelector('[data-field="workType"]').value = data.workType || "";
   wrap.querySelector('[data-field="billing"]').value = data.billing || "対象";
   wrap.querySelector('[data-field="nextVisit"]').value = data.nextVisit || "";
-  wrap.querySelector('[data-field="time"]').value = data.time || "";
+  const [savedTimeStart, savedTimeEnd] = (data.time || "").split("〜");
+  wrap.querySelector('[data-field="timeStart"]').value = savedTimeStart || "";
+  wrap.querySelector('[data-field="timeEnd"]').value = savedTimeEnd || "";
   wrap.querySelector(".report-entry-remove").addEventListener("click", () => {
     wrap.remove();
     renumberReportEntries();
@@ -796,14 +828,21 @@ document.getElementById("form-report").addEventListener("submit", (e) => {
   const f = e.target;
   const rep = f.rep.value;
   const date = f.date.value;
-  const entries = Array.from(document.querySelectorAll("#report-entries .report-entry")).map((el) => ({
-    clientName: el.querySelector('[data-field="clientName"]').value,
-    content: el.querySelector('[data-field="content"]').value,
-    workType: el.querySelector('[data-field="workType"]').value,
-    billing: el.querySelector('[data-field="billing"]').value,
-    nextVisit: el.querySelector('[data-field="nextVisit"]').value,
-    time: el.querySelector('[data-field="time"]').value,
-  }));
+  const entries = Array.from(document.querySelectorAll("#report-entries .report-entry")).map((el) => {
+    const timeStart = el.querySelector('[data-field="timeStart"]').value;
+    const timeEnd = el.querySelector('[data-field="timeEnd"]').value;
+    let time = "";
+    if (timeStart && timeEnd) time = `${timeStart}〜${timeEnd}`;
+    else if (timeStart) time = timeStart;
+    return {
+      clientName: el.querySelector('[data-field="clientName"]').value,
+      content: el.querySelector('[data-field="content"]').value,
+      workType: el.querySelector('[data-field="workType"]').value,
+      billing: el.querySelector('[data-field="billing"]').value,
+      nextVisit: el.querySelector('[data-field="nextVisit"]').value,
+      time,
+    };
+  });
   if (entries.length === 0) {
     showToast("少なくとも1件の訪問・案件を入力してください");
     return;

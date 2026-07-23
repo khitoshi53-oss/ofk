@@ -258,6 +258,9 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
   padding: 8px 10px; margin-top: -2px; display: flex; flex-direction: column; gap: 6px;
   max-height: 160px; overflow-y: auto;
 }
+.report-entry-time-row { display: flex; align-items: center; gap: 6px; }
+.report-entry-time-row input[type="time"] { flex: 1; min-width: 0; }
+.report-entry-time-sep { color: var(--muted); font-size: 13px; flex: none; }
 .history-title { font-size: 11px; font-weight: 700; color: var(--primary-dark); }
 .history-empty { font-size: 12px; color: var(--muted); }
 .history-item + .history-item { border-top: 1px solid var(--border); padding-top: 5px; margin-top: 5px; }
