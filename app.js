@@ -572,9 +572,10 @@ function orderStatusTagsHtml(item) {
   if (status === "発行完了") {
     return `<span class="tag status-全完了">全完了</span>`;
   }
-  const tags = [`<span class="tag status-未発行">未発行</span>`];
+  const tags = [];
   if (!item.purchaseDate) tags.push(`<span class="tag status-未発注">未発注</span>`);
   if (!item.deliveryDate) tags.push(`<span class="tag status-未納品">未納品</span>`);
+  tags.push(`<span class="tag status-未発行">未発行</span>`);
   return tags.join("");
 }
 
