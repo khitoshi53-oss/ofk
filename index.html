@@ -14,6 +14,24 @@
 </head>
 <body>
 
+<!-- 起動スプラッシュ -->
+<div id="splash" class="splash">
+  <div class="splash-logo-wrap">
+    <img src="logo.png" alt="OfficeK" class="splash-logo" />
+    <div class="splash-shine"></div>
+  </div>
+</div>
+<script>
+  window.addEventListener("load", function () {
+    setTimeout(function () {
+      var splash = document.getElementById("splash");
+      if (!splash) return;
+      splash.classList.add("splash-hide");
+      setTimeout(function () { splash.remove(); }, 700);
+    }, 3000);
+  });
+</script>
+
 <!-- ログイン前ゲート -->
 <div id="gate" class="gate">
   <div class="gate-card">
@@ -29,7 +47,7 @@
   <header class="topbar">
     <div class="topbar-title topbar-logo">
       <img src="logo.png" alt="OfficeK" class="topbar-logo-img" />
-      <span class="topbar-logo-text">業務管理＿株式会社OfficeK</span>
+      <span class="topbar-logo-text">業務管理<br />株式会社OfficeK</span>
     </div>
     <div class="topbar-user">
       <span id="current-user-label"></span>
