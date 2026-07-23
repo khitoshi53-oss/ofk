@@ -1,7 +1,9 @@
 :root {
   color-scheme: light;
-  --primary: #2f6fed;
-  --primary-dark: #1e54c4;
+  --primary: #34383f;
+  --primary-dark: #1a1c20;
+  --primary-tint: #eceef1;
+  --primary-tint-soft: #f6f7f9;
   --bg: #f5f6fa;
   --card-bg: #ffffff;
   --border: #e3e6ee;
@@ -134,7 +136,7 @@ body {
   padding: 14px;
   border-radius: 10px;
   border: 1px solid var(--border);
-  background: #f8faff;
+  background: var(--primary-tint-soft);
   font-size: 16px;
   font-weight: 600;
   color: var(--primary-dark);
@@ -186,7 +188,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .dashboard-marquee {
   flex: 1 1 auto; min-width: 0; overflow: hidden;
   height: 28px; display: flex; align-items: center;
-  background: #eef2fd; border-radius: 8px; padding: 0 10px;
+  background: var(--primary-tint); border-radius: 8px; padding: 0 10px;
 }
 .dashboard-marquee.hidden { display: none; }
 .dashboard-marquee-track {
@@ -203,7 +205,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
   to { transform: translateX(-50%); }
 }
 .marquee-edit-btn {
-  flex: none; border: none; background: #eef2fd; color: var(--primary-dark);
+  flex: none; border: none; background: var(--primary-tint); color: var(--primary-dark);
   width: 28px; height: 28px; border-radius: 8px; font-size: 13px; cursor: pointer;
 }
 
@@ -272,11 +274,11 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .calendar-header { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; padding: 0 4px; }
 .cal-month-label { flex: 1; text-align: center; font-weight: 700; font-size: 13px; }
 .cal-nav-btn {
-  border: 1px solid var(--border); background: #f8faff; color: var(--primary-dark);
+  border: 1px solid var(--border); background: var(--primary-tint-soft); color: var(--primary-dark);
   width: 32px; height: 32px; border-radius: 8px; font-size: 16px; cursor: pointer; line-height: 1; flex: none;
 }
 .cal-today-btn {
-  border: 1px solid var(--border); background: #f8faff; color: var(--primary-dark);
+  border: 1px solid var(--border); background: var(--primary-tint-soft); color: var(--primary-dark);
   padding: 0 10px; height: 32px; border-radius: 8px; font-size: 12px; cursor: pointer; flex: none;
 }
 .week-grid { display: flex; flex-direction: column; min-width: 620px; }
@@ -291,7 +293,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
   text-align: center; font-size: 11px; font-weight: 700; color: var(--muted);
   background: #f8f9fc; border-radius: 8px; padding: 6px 2px;
 }
-.week-day-header.week-sat { color: #2f6fed; background: #eef4ff; }
+.week-day-header.week-sat { color: var(--primary-dark); background: var(--primary-tint); }
 .week-day-header.week-sun { color: var(--danger); background: #fdeceb; }
 .week-day-header.week-today { outline: 2px solid var(--primary); outline-offset: -2px; }
 .week-holiday-name { font-size: 8.5px; line-height: 1.1; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -299,11 +301,11 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
   background: #fafbfd; border-radius: 8px; padding: 4px; min-height: 64px;
   display: flex; flex-direction: column; gap: 3px; cursor: pointer;
 }
-.week-day-cell.week-sat { background: #f4f8ff; }
+.week-day-cell.week-sat { background: var(--primary-tint-soft); }
 .week-day-cell.week-sun { background: #fdf3f2; }
 .week-day-cell.week-today { box-shadow: inset 0 0 0 2px var(--primary); }
 .week-item-chip {
-  background: #eef2fd; color: var(--primary-dark); border-radius: 6px;
+  background: var(--primary-tint); color: var(--primary-dark); border-radius: 6px;
   padding: 3px 5px; font-size: 10.5px; line-height: 1.3; cursor: pointer;
 }
 .week-item-chip:active { background: var(--primary); color: #fff; }
@@ -383,7 +385,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .list-item .tags { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
 .tag {
   font-size: 11px; padding: 2px 8px; border-radius: 999px;
-  background: #eef2fd; color: var(--primary-dark);
+  background: var(--primary-tint); color: var(--primary-dark);
 }
 .tag.status-完了 { background: #e6f7ea; color: var(--success); }
 .tag.status-進行中 { background: #fff4e0; color: var(--warning); }
@@ -397,7 +399,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .tag.status-発行完了 { background: #e6f7ea; color: var(--success); }
 .tag.status-未発注 { background: #fdeceb; color: var(--danger); }
 .tag.status-未納品 { background: #fdeceb; color: var(--danger); }
-.tag.status-全完了 { background: #e7f0fe; color: var(--primary-dark); }
+.tag.status-全完了 { background: var(--primary-tint); color: var(--primary-dark); }
 
 /* --- 各種申請 --- */
 .request-add-buttons { display: flex; gap: 8px; margin-bottom: 14px; }
