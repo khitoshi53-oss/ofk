@@ -289,7 +289,7 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
   display: flex; flex-direction: column; gap: 4px;
 }
 .list-item .row1 { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 14px; }
-.list-item .row1-tags { display: flex; gap: 6px; align-items: center; font-weight: normal; }
+.list-item .row1-tags { display: flex; gap: 6px; align-items: center; font-weight: normal; flex-wrap: wrap; justify-content: flex-end; }
 .list-item .row2 { font-size: 13px; color: var(--muted); }
 .list-item .tags { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
 .tag {
@@ -306,6 +306,9 @@ main#views { padding: 16px; max-width: 720px; margin: 0 auto; }
 .tag.status-却下 { background: #fdeceb; color: var(--danger); }
 .tag.status-未発行 { background: #fdeceb; color: var(--danger); }
 .tag.status-発行完了 { background: #e6f7ea; color: var(--success); }
+.tag.status-未発注 { background: #fdeceb; color: var(--danger); }
+.tag.status-未納品 { background: #fdeceb; color: var(--danger); }
+.tag.status-全完了 { background: #e7f0fe; color: var(--primary-dark); }
 
 /* --- 各種申請 --- */
 .request-add-buttons { display: flex; gap: 8px; margin-bottom: 14px; }

@@ -558,6 +558,17 @@ function orderItemTotals(items) {
   );
 }
 
+function orderStatusTagsHtml(item) {
+  const status = item.deliveryNoteStatus || "未発行";
+  if (status === "発行完了") {
+    return `<span class="tag status-全完了">全完了</span>`;
+  }
+  const tags = [`<span class="tag status-未発行">未発行</span>`];
+  if (!item.purchaseDate) tags.push(`<span class="tag status-未発注">未発注</span>`);
+  if (!item.deliveryDate) tags.push(`<span class="tag status-未納品">未納品</span>`);
+  return tags.join("");
+}
+
 function renderOrders() {
   const statusFilter = document.getElementById("order-status-filter").value;
   const repFilter = document.getElementById("order-rep-filter").value;
@@ -573,13 +584,12 @@ function renderOrders() {
     return;
   }
   items.forEach((item) => {
-    const status = item.deliveryNoteStatus || "未発行";
     const totals = orderItemTotals(item.items);
     const productNames = (item.items || []).map((it) => it.productName).filter(Boolean).join("、");
     const el = document.createElement("div");
     el.className = "list-item";
     el.innerHTML = `
-      <div class="row1"><span>${escapeHtml(item.clientName || "")}</span><span class="tag status-${escapeHtml(status)}">${escapeHtml(status)}</span></div>
+      <div class="row1"><span>${escapeHtml(item.clientName || "")}</span><span class="row1-tags">${orderStatusTagsHtml(item)}</span></div>
       <div class="row2">受注日: ${escapeHtml(item.orderDate || "-")} ／ 受注者: ${escapeHtml(item.orderTakenBy || "-")}</div>
       <div class="row2">発注日: ${escapeHtml(item.purchaseDate || "-")} ／ 発注者: ${escapeHtml(item.orderPlacedBy || "-")} ／ 発注先: ${escapeHtml(orderSupplierLabel(item))}</div>
       <div class="row2">納品日: ${escapeHtml(item.deliveryDate || "-")} ／ 納品者: ${escapeHtml(item.deliveredBy || "-")}</div>
