@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eigyo-kanri-v9';
+const CACHE_NAME = 'eigyo-kanri-v10';
 const ASSETS = [
   './',
   './index.html',
