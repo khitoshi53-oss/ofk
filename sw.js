@@ -1,4 +1,4 @@
-const CACHE_NAME = 'eigyo-kanri-v10';
+const CACHE_NAME = 'eigyo-kanri-v11';
 const ASSETS = [
   './',
   './index.html',
@@ -6,6 +6,7 @@ const ASSETS = [
   './app.js',
   './firebase-config.js',
   './manifest.json',
+  './logo.png',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
