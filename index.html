@@ -237,8 +237,27 @@
     <label>作業者<select name="assignee" required></select></label>
     <label>依頼者<input type="text" name="requester" /></label>
     <label>タスク名<input type="text" name="title" required /></label>
-    <label>連絡方法<input type="text" name="contactMethod" placeholder="電話・メール等" /></label>
-    <label>カテゴリ<input type="text" name="category" /></label>
+    <label>連絡方法
+      <select name="contactMethod">
+        <option value="">選択してください</option>
+        <option value="予定表">予定表</option>
+        <option value="LINE">LINE</option>
+        <option value="メール">メール</option>
+        <option value="電話">電話</option>
+        <option value="口頭">口頭</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
+    <label>カテゴリ
+      <select name="category">
+        <option value="">選択してください</option>
+        <option value="営業活動">営業活動</option>
+        <option value="事務処理">事務処理</option>
+        <option value="顧客対応">顧客対応</option>
+        <option value="社内業務">社内業務</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
     <label>依頼日<input type="date" name="requestDate" /></label>
     <label>期限<input type="date" name="dueDate" /></label>
     <label>ステータス
