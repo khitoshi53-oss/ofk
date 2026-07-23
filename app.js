@@ -1786,9 +1786,11 @@ function renderDashboard() {
       if (t.status !== "完了" && t.dueDate && elapsedDays(t.dueDate) > 0) counts.overdue++;
     });
     Object.keys(totals).forEach((k) => (totals[k] += counts[k] || 0));
-    rows += `<tr><td>${escapeHtml(rep)}</td><td>${counts["未着手"]}</td><td>${counts["進行中"]}</td><td>${counts["完了"]}</td><td>${counts.overdue}</td></tr>`;
+    const overdueCell = counts.overdue > 0 ? `<span class="num-danger">${counts.overdue}</span>` : counts.overdue;
+    rows += `<tr><td>${escapeHtml(rep)}</td><td>${counts["未着手"]}</td><td>${counts["進行中"]}</td><td>${counts["完了"]}</td><td>${overdueCell}</td></tr>`;
   });
-  rows += `<tr><td><b>合計</b></td><td>${totals["未着手"]}</td><td>${totals["進行中"]}</td><td>${totals["完了"]}</td><td>${totals.overdue}</td></tr>`;
+  const totalOverdueCell = totals.overdue > 0 ? `<span class="num-danger">${totals.overdue}</span>` : totals.overdue;
+  rows += `<tr><td><b>合計</b></td><td>${totals["未着手"]}</td><td>${totals["進行中"]}</td><td>${totals["完了"]}</td><td>${totalOverdueCell}</td></tr>`;
   todoTable.innerHTML = rows;
 
   // Daily report submission status this month
@@ -1818,10 +1820,14 @@ function renderDashboard() {
       (r) => r.reqType === "経費精算" && (r.status || "承認待ち") === "承認待ち"
     );
     const pendingExpenseAmount = pendingExpense.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+    const pendingLeaveCell =
+      pendingLeave.length > 0 ? `<span class="num-danger">${pendingLeave.length}件</span>` : `${pendingLeave.length}件`;
+    const pendingExpenseCell =
+      pendingExpense.length > 0 ? `<span class="num-danger">${pendingExpense.length}件</span>` : `${pendingExpense.length}件`;
     requestTable.innerHTML = `
       <tr><th>種別</th><th>承認待ち件数</th><th>金額</th></tr>
-      <tr><td>有給休暇申請</td><td>${pendingLeave.length}件</td><td>-</td></tr>
-      <tr><td>経費精算申請</td><td>${pendingExpense.length}件</td><td>${yen(pendingExpenseAmount)}</td></tr>`;
+      <tr><td>有給休暇申請</td><td>${pendingLeaveCell}</td><td>-</td></tr>
+      <tr><td>経費精算申請</td><td>${pendingExpenseCell}</td><td>${yen(pendingExpenseAmount)}</td></tr>`;
   }
 
   renderMarquee(settings);
