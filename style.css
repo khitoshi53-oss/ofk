@@ -70,11 +70,7 @@ body {
 }
 .topbar-title { font-weight: 700; font-size: 14px; line-height: 1.3; min-width: 0; flex: 1; margin-right: 8px; }
 .topbar-logo { display: flex; align-items: center; gap: 10px; }
-.topbar-logo-badge {
-  background: #fff; border-radius: 6px; padding: 3px 8px;
-  display: inline-flex; align-items: center; flex: none; line-height: 0;
-}
-.topbar-logo-img { height: 20px; width: auto; display: block; }
+.topbar-logo-img { height: 34px; width: auto; display: block; flex: none; }
 .topbar-logo-text { font-weight: 700; font-size: 13px; line-height: 1.3; }
 .topbar-user { font-size: 13px; display: flex; align-items: center; gap: 8px; flex: none; }
 .link-btn {
