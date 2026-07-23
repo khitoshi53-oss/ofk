@@ -210,7 +210,7 @@ document.getElementById("form-schedule").rep.addEventListener("change", renderCo
 
 function populateRepSelects() {
   const selects = document.querySelectorAll(
-    'select[name="rep"], select[name="assignee"], select[name="owner"], #schedule-rep-filter, #todo-rep-filter, #report-rep-filter, #deal-rep-filter, #request-rep-filter'
+    'select[name="rep"], select[name="assignee"], select[name="owner"], select[name="requester"], #schedule-rep-filter, #todo-rep-filter, #report-rep-filter, #deal-rep-filter, #request-rep-filter'
   );
   selects.forEach((sel) => {
     const keepFirst = sel.querySelector('option[value=""]');
