@@ -112,6 +112,8 @@ function setupModals() {
       if (btn.dataset.openModal === "modal-schedule") {
         document.getElementById("schedule-delete-btn").classList.add("hidden");
         document.getElementById("form-schedule").date.value = todayStr();
+        document.getElementById("schedule-time-free").checked = false;
+        updateScheduleTimeFieldState();
         showScheduleCompanionSection(true);
         renderCompanionList();
       }
@@ -170,6 +172,7 @@ function closeAllModals() {
   document.querySelectorAll(".modal-backdrop").forEach((m) => m.classList.add("hidden"));
   document.querySelectorAll(".modal-card").forEach((f) => f.reset && f.reset());
   document.getElementById("schedule-delete-btn").classList.add("hidden");
+  updateScheduleTimeFieldState();
   document.getElementById("schedule-companion-toggle").checked = false;
   document.getElementById("schedule-companion-list").classList.add("hidden");
   document.getElementById("schedule-companion-list").innerHTML = "";
@@ -456,6 +459,16 @@ function renderSchedule() {
 
   renderScheduleMarquee(state.data.settings || {});
 }
+// 「終日・フリー」がオンの間は時間の入力欄を無効化する（マウスの時刻ピッカーと共存させるため）
+function updateScheduleTimeFieldState() {
+  const isFree = document.getElementById("schedule-time-free").checked;
+  const form = document.getElementById("form-schedule");
+  form.time.disabled = isFree;
+  if (isFree) form.time.value = "";
+  document.getElementById("schedule-time-wrap").classList.toggle("hidden", isFree);
+}
+document.getElementById("schedule-time-free").addEventListener("change", updateScheduleTimeFieldState);
+
 function editSchedule(item) {
   state.editing = { collection: "schedule", id: item.id };
   const form = document.getElementById("form-schedule");
@@ -463,7 +476,11 @@ function editSchedule(item) {
   form.rep.value = item.rep || "";
   form.type.value = item.type || "外出";
   form.clientName.value = item.clientName || "";
-  form.time.value = item.time || "";
+  // 時間が "HH:MM" 形式ならそのままセット、それ以外（フリー・空欄など）は「終日・フリー」扱いにする
+  const isTimeValue = /^\d{2}:\d{2}$/.test(item.time || "");
+  document.getElementById("schedule-time-free").checked = !isTimeValue;
+  form.time.value = isTimeValue ? item.time : "";
+  updateScheduleTimeFieldState();
   form.content.value = item.content || "";
   form.memo.value = item.memo || "";
   form.addTodo.checked = false;
@@ -480,7 +497,7 @@ document.getElementById("form-schedule").addEventListener("submit", (e) => {
     rep: f.rep.value,
     type: f.type.value,
     clientName: f.clientName.value,
-    time: f.time.value,
+    time: f.timeFree.checked ? "フリー" : f.time.value,
     content: f.content.value,
     memo: f.memo.value,
   };

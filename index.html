@@ -245,7 +245,8 @@
       </select>
     </label>
     <label>お客様名<input type="text" name="clientName" placeholder="取引先・お客様名" /></label>
-    <label>時間<input type="text" name="time" placeholder="例: 10:00 または フリー" required /></label>
+    <label id="schedule-time-wrap">時間<input type="time" name="time" /></label>
+    <label class="checkbox-label"><input type="checkbox" name="timeFree" id="schedule-time-free" /> 終日・フリー（時間指定なし）</label>
     <label>内容<input type="text" name="content" placeholder="訪問先・用件など" required /></label>
     <label>メモ<textarea name="memo" rows="2"></textarea></label>
 
