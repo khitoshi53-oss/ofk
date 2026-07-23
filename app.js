@@ -1122,11 +1122,11 @@ function renderDeals() {
     el.innerHTML = `
       <div class="row1"><span>${escapeHtml(titleText)}</span><span class="row1-tags"><span class="tag type-${escapeHtml(item.type || "見込")}">${escapeHtml(item.type || "見込")}</span><span class="tag">${escapeHtml(item.category || "売掛")}</span></span></div>
       <div class="row2">担当: ${escapeHtml(item.owner || "-")}${isReceivable ? "" : ` ／ 商品: ${escapeHtml(item.product || "-")}`}</div>
-      <div class="row2">売上: ${yen(item.salesAmount)} ／ 粗利: ${yen(item.grossProfit)}${isReceivable ? "" : ` ／ 確度: ${escapeHtml(String(item.probability ?? "-"))}%`}</div>
+      <div class="row2">売上: ${yen(item.salesAmount)} ／ 粗利: ${yen(item.grossProfit)}${isReceivable ? "" : ` ／ 確度: ${escapeHtml(dealProbabilityLabel(item))}`}</div>
       ${isReceivable ? "" : `<div class="row2">ステージ: ${escapeHtml(item.stage || "-")} ／ 受注予定: ${escapeHtml(item.expectedDate || "-")}</div>`}
       <div class="tags">
         ${item.invoiced ? '<span class="tag">伝票発行済</span>' : ""}
-        ${!isReceivable && item.competition ? `<span class="tag">${escapeHtml(item.competition)}</span>` : ""}
+        ${!isReceivable && item.competitionStatus === "あり" ? `<span class="tag">競合: ${escapeHtml(item.competitorName || "あり")}</span>` : ""}
       </div>
       <div class="item-actions">
         <button data-edit="${item.id}">編集</button>
@@ -1139,6 +1139,35 @@ function renderDeals() {
     list.appendChild(el);
   });
 }
+// 確度グレード（A〜E）とパーセント・意味合いの対応表
+const DEAL_PROBABILITY_GRADES = {
+  A: { percent: 100, label: "確定" },
+  B: { percent: 90, label: "ほぼ確定" },
+  C: { percent: 70, label: "可能性高" },
+  D: { percent: 50, label: "互角" },
+  E: { percent: 30, label: "可能性低" },
+};
+function dealProbabilityLabel(item) {
+  const grade = item.probabilityGrade;
+  const info = DEAL_PROBABILITY_GRADES[grade];
+  if (info) return `${grade}（${info.percent}%／${info.label}）`;
+  return `${Number(item.probability) || 0}%`;
+}
+
+// 「その他」を選んだときだけ商品・サービス名の自由入力欄を表示する
+function updateDealProductVisibility() {
+  const form = document.getElementById("form-deal");
+  document.getElementById("deal-product-other-wrap").classList.toggle("hidden", form.product.value !== "その他");
+}
+document.getElementById("form-deal").product.addEventListener("change", updateDealProductVisibility);
+
+// 競合状況が「あり」のときだけ競合先の入力欄を表示する
+function updateDealCompetitionVisibility() {
+  const form = document.getElementById("form-deal");
+  document.getElementById("deal-competitor-wrap").classList.toggle("hidden", form.competitionStatus.value !== "あり");
+}
+document.getElementById("form-deal").competitionStatus.addEventListener("change", updateDealCompetitionVisibility);
+
 // 契約種別=売掛のときは伝票番号・担当者・売上金額・粗利益のみ表示する
 function updateDealFormVisibility() {
   const form = document.getElementById("form-deal");
@@ -1149,8 +1178,16 @@ function updateDealFormVisibility() {
   document
     .querySelectorAll("#form-deal .deal-field-receivable")
     .forEach((el) => el.classList.toggle("hidden", !isReceivable));
+  if (!isReceivable) {
+    updateDealProductVisibility();
+    updateDealCompetitionVisibility();
+  }
 }
 document.getElementById("form-deal").category.addEventListener("change", updateDealFormVisibility);
+const DEAL_PRODUCT_OPTIONS = [
+  "NISG9000", "NISE1000", "NIEP1000", "PC", "Copy", "ビジネスフォン",
+  "オフィス家具", "ネットワークカメラ", "AppCheck", "LAN工事", "ソフト",
+];
 function editDeal(item) {
   state.editing = { collection: "deals", id: item.id };
   const form = document.getElementById("form-deal");
@@ -1159,16 +1196,26 @@ function editDeal(item) {
   form.owner.value = item.owner || "";
   form.receiptNumber.value = item.receiptNumber || "";
   form.clientName.value = item.clientName || "";
-  form.product.value = item.product || "";
+  // 既存データが選択肢に無い自由入力だった場合は「その他」として復元する
+  if (item.product && !DEAL_PRODUCT_OPTIONS.includes(item.product)) {
+    form.product.value = "その他";
+    form.productOther.value = item.product;
+  } else {
+    form.product.value = item.product || "";
+    form.productOther.value = "";
+  }
   form.salesAmount.value = item.salesAmount || "";
   form.grossProfit.value = item.grossProfit || "";
-  form.probability.value = item.probability || "";
+  form.probabilityGrade.value = item.probabilityGrade || "";
   form.stage.value = item.stage || "";
   form.expectedDate.value = item.expectedDate || "";
-  form.competition.value = item.competition || "";
+  form.competitionStatus.value = item.competitionStatus || (item.competition ? "あり" : "なし");
+  form.competitorName.value = item.competitorName || (item.competitionStatus ? "" : item.competition || "");
   form.invoiced.checked = !!item.invoiced;
   form.memo.value = item.memo || "";
   updateDealFormVisibility();
+  updateDealProductVisibility();
+  updateDealCompetitionVisibility();
   openModal("modal-deal");
 }
 document.getElementById("form-deal").addEventListener("submit", (e) => {
@@ -1190,11 +1237,13 @@ document.getElementById("form-deal").addEventListener("submit", (e) => {
       product: "",
       salesAmount,
       grossProfit,
+      probabilityGrade: "",
       probability: 0,
       weightedAmount: 0,
       stage: "",
       expectedDate: "",
-      competition: "",
+      competitionStatus: "",
+      competitorName: "",
       invoiced: !!receiptNumber,
       memo: "",
     };
@@ -1203,21 +1252,27 @@ document.getElementById("form-deal").addEventListener("submit", (e) => {
       showToast("顧客名を入力してください");
       return;
     }
-    const probability = Number(f.probability.value) || 0;
+    const grade = f.probabilityGrade.value;
+    const probability = DEAL_PROBABILITY_GRADES[grade] ? DEAL_PROBABILITY_GRADES[grade].percent : 0;
+    const product = f.product.value === "その他" ? f.productOther.value : f.product.value;
+    const competitionStatus = f.competitionStatus.value;
+    const competitorName = competitionStatus === "あり" ? f.competitorName.value : "";
     payload = {
       type: f.type.value,
       category,
       owner: f.owner.value,
       receiptNumber: "",
       clientName: f.clientName.value,
-      product: f.product.value,
+      product,
       salesAmount,
       grossProfit,
+      probabilityGrade: grade,
       probability,
       weightedAmount: Math.round((salesAmount * probability) / 100),
       stage: f.stage.value,
       expectedDate: f.expectedDate.value,
-      competition: f.competition.value,
+      competitionStatus,
+      competitorName,
       invoiced: f.invoiced.checked,
       memo: f.memo.value,
     };

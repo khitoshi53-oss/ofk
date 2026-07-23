@@ -570,13 +570,45 @@
     <label>担当者<select name="owner" required></select></label>
     <label class="deal-field-receivable">伝票番号<input type="text" name="receiptNumber" placeholder="伝票発行済の場合に入力" /></label>
     <label class="deal-field-full">顧客名<input type="text" name="clientName" /></label>
-    <label class="deal-field-full">商品・サービス<input type="text" name="product" /></label>
+    <label class="deal-field-full">商品・サービス
+      <select name="product">
+        <option value="">選択してください</option>
+        <option value="NISG9000">NISG9000</option>
+        <option value="NISE1000">NISE1000</option>
+        <option value="NIEP1000">NIEP1000</option>
+        <option value="PC">PC</option>
+        <option value="Copy">Copy</option>
+        <option value="ビジネスフォン">ビジネスフォン</option>
+        <option value="オフィス家具">オフィス家具</option>
+        <option value="ネットワークカメラ">ネットワークカメラ</option>
+        <option value="AppCheck">AppCheck</option>
+        <option value="LAN工事">LAN工事</option>
+        <option value="ソフト">ソフト</option>
+        <option value="その他">その他</option>
+      </select>
+    </label>
+    <label class="deal-field-full hidden" id="deal-product-other-wrap">商品・サービス（その他）<input type="text" name="productOther" placeholder="商品・サービス名を入力" /></label>
     <label>売上金額(税別)<input type="number" name="salesAmount" min="0" step="1" /></label>
     <label>粗利益(税別)<input type="number" name="grossProfit" min="0" step="1" /></label>
-    <label class="deal-field-full">確度(%)<input type="number" name="probability" min="0" max="100" step="1" /></label>
+    <label class="deal-field-full">確度
+      <select name="probabilityGrade">
+        <option value="">選択してください</option>
+        <option value="A">A：100%／確定</option>
+        <option value="B">B：90%／ほぼ確定</option>
+        <option value="C">C：70%／可能性高</option>
+        <option value="D">D：50%／互角</option>
+        <option value="E">E：30%／可能性低</option>
+      </select>
+    </label>
     <label class="deal-field-full">ステージ<input type="text" name="stage" placeholder="商談中・見積提出済 等" /></label>
     <label class="deal-field-full">受注予定日<input type="date" name="expectedDate" /></label>
-    <label class="deal-field-full">競合状況<input type="text" name="competition" placeholder="競合なし 等" /></label>
+    <label class="deal-field-full">競合状況
+      <select name="competitionStatus">
+        <option value="なし">なし</option>
+        <option value="あり">あり</option>
+      </select>
+    </label>
+    <label class="deal-field-full hidden" id="deal-competitor-wrap">競合先<input type="text" name="competitorName" placeholder="競合他社名" /></label>
     <label class="checkbox-label deal-field-full"><input type="checkbox" name="invoiced" /> 伝票発行済（確定案件のみ）</label>
     <label class="deal-field-full">備考<textarea name="memo" rows="2"></textarea></label>
     <div class="modal-actions">
